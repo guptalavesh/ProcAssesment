@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+@layer base {
+  body {
+    @apply font-sans text-brand-dark bg-white;
+    -webkit-font-smoothing: antialiased;
+  }
+  * { box-sizing: border-box; }
+}
+
+@layer components {
+  /* ── Accenture card ── */
+  .acc-card {
+    @apply bg-white border border-bg-secondary rounded-xl p-4 shadow-sm;
+  }
+
+  /* ── Score badge ── */
+  .score-badge {
+    @apply inline-block px-2 py-0.5 rounded text-xs font-bold;
+  }
+
+  /* ── Accenture table ── */
+  .acc-table {
+    @apply w-full text-sm border-collapse;
+  }
+  .acc-table th {
+    @apply text-left text-xs font-bold text-brand-dark px-3 py-2
+           bg-bg-secondary border-b border-bg-muted uppercase tracking-wide;
+  }
+  .acc-table td {
+    @apply px-3 py-2 border-b border-bg-secondary/50 text-black;
+  }
+  .acc-table tbody tr:hover {
+    @apply bg-bg-secondary/40;
+  }
+
+  /* ── Page header (dark gradient) ── */
+  .page-header {
+    @apply rounded-xl p-5 mb-5
+           bg-gradient-to-r from-brand-dark via-brand-mid to-brand-purple
+           text-white shadow-md;
+  }
+
+  /* ── Focus ring ── */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-1;
+  }
+
+  /* ── CTA hover scale ── */
+  .btn-cta {
+    @apply hover:scale-[1.02] active:scale-[0.98] transition-transform;
+  }
+}
+
+/* ── Animated gradient for Landing hero ── */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f3f0f8; }
+::-webkit-scrollbar-thumb { background: #a100ff55; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a100ff99; }
