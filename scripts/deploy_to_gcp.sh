@@ -208,15 +208,9 @@ if [[ "${SKIP_FRONTEND}" != "1" ]]; then
   echo " Frontend → Firebase Hosting"
   echo "──────────────────────────────────────────────────────────────"
 
-  # Make sure the GCP project has Firebase added (idempotent)
-  if ! firebase projects:list --json 2>/dev/null | grep -q "\"projectId\": \"${PROJECT_ID}\""; then
-    echo "→ Linking Firebase to the GCP project (one-time)…"
-    firebase projects:addfirebase "${PROJECT_ID}" 2>/dev/null || {
-      echo "  (project already has Firebase, or you need to enable it via Console)"
-    }
-  fi
-
-  # Update .firebaserc with the actual project id
+  # Write .firebaserc first — every firebase CLI call below reads it for the
+  # default project, and the version checked into the repo holds a
+  # PLACEHOLDER value so a fresh clone fails "Invalid project id" otherwise.
   cat > .firebaserc <<EOF
 {
   "projects": {
@@ -225,16 +219,27 @@ if [[ "${SKIP_FRONTEND}" != "1" ]]; then
 }
 EOF
 
-  # Build the frontend
-  echo "→ Building frontend (vite)…"
-  ( cd frontend && npm install --no-audit --no-fund >/dev/null 2>&1 && npm run build >/dev/null )
-  echo "✓ Frontend built → frontend/dist"
-
-  # Firebase login check (Cloud Shell already authenticated)
+  # Firebase login check (Cloud Shell is already authenticated)
   if ! firebase login:list 2>/dev/null | grep -q "@"; then
     echo "→ Signing in to Firebase…"
     firebase login --no-localhost
   fi
+
+  # Make sure the GCP project has Firebase added (idempotent). Always pass
+  # --project explicitly so the CLI never falls back to the .firebaserc default.
+  if ! firebase projects:list --json 2>/dev/null | grep -q "\"projectId\": \"${PROJECT_ID}\""; then
+    echo "→ Linking Firebase to the GCP project (one-time)…"
+    if ! firebase projects:addfirebase "${PROJECT_ID}" 2>/dev/null; then
+      echo "  CLI link failed — open https://console.firebase.google.com/?project=${PROJECT_ID}"
+      echo "  click 'Add Firebase to existing GCP project', then re-run this script."
+      exit 1
+    fi
+  fi
+
+  # Build the frontend
+  echo "→ Building frontend (vite)…"
+  ( cd frontend && npm install --no-audit --no-fund >/dev/null 2>&1 && npm run build >/dev/null )
+  echo "✓ Frontend built → frontend/dist"
 
   # Deploy
   echo "→ Deploying to Firebase Hosting…"
