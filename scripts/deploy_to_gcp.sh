@@ -67,6 +67,10 @@ fi
 gcloud config set project "${PROJECT_ID}" >/dev/null
 echo "✓ Project: ${PROJECT_ID}"
 
+# Align ADC quota project with the active project — silences the
+# "quota project mismatch" warning that gcloud prints otherwise.
+gcloud auth application-default set-quota-project "${PROJECT_ID}" >/dev/null 2>&1 || true
+
 REGION="${REGION:-us-central1}"
 SERVICE="${SERVICE:-procassesment}"
 REPO_NAME="${REPO_NAME:-app}"
@@ -126,13 +130,39 @@ if [[ "${SKIP_BACKEND}" != "1" ]]; then
     gcloud iam service-accounts create "${SERVICE}-run" \
       --display-name="ProcAssesment Cloud Run runtime" \
       --project="${PROJECT_ID}" >/dev/null
+
+    # SA creation is eventually consistent — IAM bindings issued immediately
+    # after will fail with "Service account does not exist". Poll until it's
+    # visible, up to 60 seconds.
+    echo "→ Waiting for service account to propagate…"
+    for i in $(seq 1 30); do
+      if gcloud iam service-accounts describe "${RUNTIME_SA}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+        sleep 2  # Extra cushion: describe can succeed slightly before bindings work
+        break
+      fi
+      sleep 2
+    done
   fi
 
-  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="serviceAccount:${RUNTIME_SA}" \
-    --role="roles/aiplatform.user" \
-    --condition=None \
-    --quiet >/dev/null
+  # Bind roles/aiplatform.user — retry on the race condition where the SA
+  # exists per `describe` but isn't yet referenceable by IAM policy.
+  echo "→ Granting roles/aiplatform.user to runtime SA…"
+  for attempt in 1 2 3 4 5; do
+    if gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+        --member="serviceAccount:${RUNTIME_SA}" \
+        --role="roles/aiplatform.user" \
+        --condition=None \
+        --quiet >/dev/null 2>&1; then
+      break
+    fi
+    if [[ $attempt -eq 5 ]]; then
+      echo "✗ Failed to bind roles/aiplatform.user after 5 attempts."
+      echo "  Re-run the script — the service account should now be fully visible."
+      exit 1
+    fi
+    echo "  attempt ${attempt}/5 failed, retrying in 5s…"
+    sleep 5
+  done
   echo "✓ Runtime SA: ${RUNTIME_SA}"
 
   # Build with Cloud Build (uses the Dockerfile at repo root)
