@@ -45,6 +45,10 @@ def _get_model():
     if _MODEL_TRIED:
         return None
     _MODEL_TRIED = True
+    # NOTE: catch BaseException, not Exception. Some import-time failures in
+    # the vertexai → google.auth → cryptography chain raise BaseException
+    # subclasses (e.g. pyo3 PanicException) on systems with broken rust
+    # bindings. We don't want a borked local env to 500 the status endpoint.
     try:
         from vertexai import init as vertex_init
         from vertexai.generative_models import GenerativeModel
@@ -52,7 +56,7 @@ def _get_model():
         _MODEL = GenerativeModel(MODEL_NAME)
         print(f"[ai_insights] Vertex AI Gemini ready: {PROJECT}/{LOCATION}/{MODEL_NAME}")
         return _MODEL
-    except Exception as e:
+    except BaseException as e:
         print(f"[ai_insights] Vertex init failed: {e}")
         print(f"[ai_insights] To enable AI insights, run: bash scripts/setup_gcp.sh")
         return None
@@ -73,7 +77,9 @@ def _gemini_generate(prompt: str) -> Optional[str]:
     try:
         resp = model.generate_content(prompt)
         return _strip_fences(resp.text or "")
-    except Exception as e:
+    except BaseException as e:
+        # Same rationale as _get_model — never let an LLM-stack hiccup
+        # escape past this layer.
         print(f"[ai_insights] generation error: {e}")
         return None
 
@@ -158,20 +164,201 @@ OUTPUT STRICT JSON:
 """
 
 
+def _g(o, k, default=None):
+    if o is None: return default
+    if hasattr(o, k): return getattr(o, k)
+    if isinstance(o, dict): return o.get(k, default)
+    return default
+
+
+def _fmt_kpi_value(kr) -> str:
+    """Render a KPI's actual in human-friendly units."""
+    actual = _g(kr, "actual")
+    unit   = _g(kr, "unit", "")
+    if actual is None:
+        return "n/a"
+    if unit == "%":     return f"{round(actual * 100)}%"
+    if unit == "days":  return f"{round(actual)} days"
+    if unit == "₹ Cr":  return f"₹{round(actual, 1)} Cr"
+    return f"{round(actual, 2)}"
+
+
 def _rule_based_fallback(sess) -> Dict[str, Any]:
-    """Rule-based fallback when Vertex AI unavailable."""
-    dim_results = sess.get("dim_results") or []
-    overall = sess.get("overall_result")
-    score = None
-    if overall is not None:
-        score = getattr(overall, "score", None)
+    """Generate useful insights from session data without an LLM.
+
+    Reads dim_results + kpi_assessment, picks out the worst-performing
+    KPIs, lowest-scoring dimensions and confirmed QRE answers, and
+    writes structured insights mirroring the schema the LLM would have
+    produced. The deployed app uses this whenever Vertex calls fail
+    or the response can't be parsed."""
+    overall      = sess.get("overall_result")
+    dim_results  = sess.get("dim_results") or []
+    ka           = sess.get("kpi_assessment")
+    engagement   = sess.get("engagement") or {}
+
+    overall_score = _g(overall, "score")
+    overall_level = _g(overall, "level", "Insufficient")
+    client = engagement.get("client_name", "the client")
+    industry = engagement.get("industry", "")
+
+    # ── Per-KPI sort: lowest score first, available only ───────────────
+    kpi_results = _g(ka, "kpi_results") or {}
+    kpis_sorted = sorted(
+        ((kid, kr) for kid, kr in kpi_results.items() if _g(kr, "available", True)),
+        key=lambda p: (_g(p[1], "score", 5), -float(_g(p[1], "weight", 0) or 0)),
+    )
+
+    # ── Strengths: KPIs scoring >= 3 ───────────────────────────────────
+    strengths: List[str] = []
+    for kid, kr in kpis_sorted:
+        score = _g(kr, "score", 0)
+        if score and score >= 3:
+            strengths.append(
+                f"{_g(kr, 'label', kid)} at {_fmt_kpi_value(kr)} "
+                f"(benchmark {_format_benchmark(kr)}) — {_g(kr, 'score_label', '')}."
+            )
+    if not strengths and overall_score and overall_score >= 2:
+        strengths.append(f"Overall {overall_level} maturity ({overall_score}/4.0) — coverage in place.")
+    if not strengths:
+        strengths.append("Data ingestion and KPI computation completed end-to-end.")
+
+    # ── Gaps: KPIs scoring < 2.5, with concrete numbers ─────────────────
+    gaps: List[str] = []
+    for kid, kr in kpis_sorted:
+        score = _g(kr, "score", 5)
+        if score and score < 2.5:
+            gaps.append(
+                f"{_g(kr, 'label', kid)} at {_fmt_kpi_value(kr)} vs benchmark "
+                f"{_format_benchmark(kr)} — {_g(kr, 'score_label', '')}."
+            )
+
+    # Lowest dimensions
+    dim_sorted = sorted(
+        (d for d in dim_results if _g(d, "score") is not None),
+        key=lambda d: _g(d, "score", 5),
+    )
+    for d in dim_sorted[:3]:
+        score = _g(d, "score")
+        if score and score < 2.5:
+            gaps.append(f"Dimension '{_g(d, 'name', '')}' scoring {score}/4 — focus area.")
+
+    # ── Priorities: action-oriented from the worst 4 KPIs ──────────────
+    priorities = _ACTIONS_BY_KPI
+    actions: List[str] = []
+    for kid, kr in kpis_sorted[:4]:
+        score = _g(kr, "score", 5)
+        if score and score < 3:
+            actions.append(priorities.get(kid, f"Address {_g(kr, 'label', kid)} gap with a 90-day action plan."))
+    if not actions:
+        actions = [
+            "Sustain current maturity by codifying the practices behind your top KPIs.",
+            "Expand coverage by adding the data sources currently marked unavailable.",
+            "Set quarterly targets for the next assessment cycle.",
+        ]
+
+    # ── Risk flags ─────────────────────────────────────────────────────
+    risk_flags: List[str] = []
+    for kid, kr in kpi_results.items():
+        score = _g(kr, "score", 5)
+        if score and score <= 1.5:
+            risk_flags.append(f"{_g(kr, 'label', kid)} significantly below benchmark — operational risk.")
+    if not risk_flags:
+        risk_flags.append("No high-severity risk signals in the computed KPIs.")
+
+    # ── Insight cards: one per gap, severity-keyed ─────────────────────
+    insight_cards: List[Dict[str, Any]] = []
+    for kid, kr in kpis_sorted[:6]:
+        score = _g(kr, "score", 5)
+        if score is None:
+            continue
+        severity = "high" if score < 2 else "medium" if score < 3 else "low"
+        category = _CATEGORY_BY_BUCKET.get(_g(kr, "bucket", ""), "effectiveness")
+        insight_cards.append({
+            "title":       _g(kr, "label", kid),
+            "description": _ACTIONS_BY_KPI.get(kid, "Review this KPI in the configure step."),
+            "category":    category,
+            "severity":    severity,
+            "value":       _g(kr, "actual"),
+            "benchmark":   _g(kr, "benchmark"),
+        })
+
+    summary = (
+        f"{client} scored {overall_score or 'n/a'} ({overall_level}) overall"
+        + (f" in the {industry} reference set" if industry else "")
+        + f". {len(strengths)} strength(s) and {len(gaps)} gap(s) identified across the procurement maturity model."
+    )
+
     return {
-        "summary": f"Maturity assessment complete with overall score {score or 'N/A'}. AI-generated narrative unavailable; fallback summary used.",
-        "strengths": ["Data ingestion completed.", "Baseline KPIs measured."],
-        "gaps": ["LLM-driven analysis not available."],
-        "priorities": ["Configure Vertex AI ADC to enable AI insights."],
-        "risk_flags": [],
-        "insight_cards": [],
+        "summary":       summary,
+        "strengths":     strengths[:6],
+        "gaps":          gaps[:6],
+        "priorities":    actions[:4],
+        "risk_flags":    risk_flags[:4],
+        "insight_cards": insight_cards,
+        "_engine":       "rule-based",
+    }
+
+
+def _format_benchmark(kr) -> str:
+    """Format the benchmark value the same way the actual is rendered."""
+    bench = _g(kr, "benchmark")
+    unit  = _g(kr, "unit", "")
+    if bench is None: return "n/a"
+    if unit == "%":     return f"{round(bench * 100)}%"
+    if unit == "days":  return f"{round(bench)} days"
+    if unit == "₹ Cr":  return f"₹{round(bench, 1)} Cr"
+    return f"{round(bench, 2)}"
+
+
+_CATEGORY_BY_BUCKET: Dict[str, str] = {
+    "Efficiency":        "efficiency",
+    "Effectiveness":     "effectiveness",
+    "Vendor Management": "effectiveness",
+    "Risk":              "risk",
+}
+
+# Concrete, action-oriented recommendations keyed by KPI id.
+_ACTIONS_BY_KPI: Dict[str, str] = {
+    "tat_pr_to_po":       "Roll out catalog buying for the top 20 indirect categories — typical 30–45% TAT reduction.",
+    "rc_adoption_volume": "Push rate-contract coverage on top-spend categories with a CFO-sponsored compliance gate.",
+    "otd":                "Tier strategic suppliers with monthly OTD scorecards and joint recovery plans for the worst 5.",
+    "savings_per_lpo":    "Re-baseline LPO references, track validated savings via finance, and challenge top 10 categories.",
+    "pac_3way_match":     "Enforce systemic 3-way match with exception SLAs; target >95% on goods invoices.",
+    "emergency_pr_pct":   "Introduce demand forecasting + safety-stock review for the top 5 categories driving emergency PRs.",
+    "tail_spend":         "Consolidate tail vendors; target 80/20 to top 50 suppliers via a sourcing-as-a-service play.",
+    "spend_per_fte":      "Increase spend managed per FTE through shared services + automation (touchless PO target 60%).",
+}
+
+
+def _tab_rule_based_fallback(sess, context_name: str) -> Dict[str, Any]:
+    """Per-tab fallback that pulls the same data view as the LLM prompt."""
+    main = _rule_based_fallback(sess)
+    if context_name == "kpi_overview":
+        return {
+            "summary":         main["summary"],
+            "key_points":      main["strengths"][:3] + main["gaps"][:3],
+            "recommendations": main["priorities"][:3],
+            "_engine":         "rule-based",
+        }
+    if context_name == "rca":
+        return {
+            "summary":         "Root-cause analysis from the lowest-scoring KPIs and their data signatures.",
+            "key_points":      main["gaps"][:5],
+            "recommendations": [a for a in main["priorities"] if a],
+            "_engine":         "rule-based",
+        }
+    if context_name == "offerings":
+        return {
+            "summary":         "Recommended offerings mapped to the biggest gaps in this assessment.",
+            "key_points":      [c["title"] for c in (main.get("insight_cards") or []) if c.get("severity") in ("high", "medium")][:5],
+            "recommendations": main["priorities"][:4],
+            "_engine":         "rule-based",
+        }
+    return {
+        "summary":         main["summary"],
+        "key_points":      main["strengths"] + main["gaps"],
+        "recommendations": main["priorities"],
+        "_engine":         "rule-based",
     }
 
 
@@ -224,9 +411,9 @@ def generate_tab_insights(session_id: str, payload: AiTabPayload):
         try:
             data = json.loads(raw)
         except Exception:
-            data = {"summary": "AI fallback.", "key_points": [], "recommendations": []}
+            data = _tab_rule_based_fallback(sess, payload.context)
     else:
-        data = {"summary": "Vertex AI unavailable.", "key_points": [], "recommendations": []}
+        data = _tab_rule_based_fallback(sess, payload.context)
     sess[cache_key] = data
     return data
 

@@ -13,18 +13,70 @@ from session_store import get_session
 router = APIRouter(tags=["results"])
 
 
+_SWIMLANE_CSS = """
+<style>
+.aiv-swim { font-family: Inter, system-ui, sans-serif; color: #0F141C; }
+.aiv-swim table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.aiv-swim th { background: #2251FF; color: #FFFFFF; padding: 10px 12px; text-align: left;
+  font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; }
+.aiv-swim td { padding: 10px 12px; border-bottom: 1px solid #E7EAF1; vertical-align: top; }
+.aiv-swim tbody tr:hover td { background: #F8F9FB; }
+.aiv-swim .gap { background: #FEF3F2; }
+.aiv-swim .gap td:first-child::before { content: "● "; color: #D92D20; font-weight: bold; }
+</style>
+"""
+
+
 def _build_swimlane_from_s2p(path, gap_list):
-    """Build swimlane HTML from S2P process file with optional gap highlights."""
+    """Build swimlane HTML from a real S2P process file with optional gap highlights."""
     try:
         df = pd.read_excel(path)
+        gap_set = {g.lower() for g in (gap_list or [])}
         rows_html = []
         for _, row in df.iterrows():
-            cells = "".join(f"<td style='padding:6px;border:1px solid #ccc'>{v}</td>" for v in row.values)
-            rows_html.append(f"<tr>{cells}</tr>")
-        header = "".join(f"<th style='padding:8px;background:#460073;color:white'>{c}</th>" for c in df.columns)
-        return f"<table style='border-collapse:collapse;width:100%'><thead><tr>{header}</tr></thead><tbody>{''.join(rows_html)}</tbody></table>"
+            row_text = " ".join(str(v) for v in row.values).lower()
+            klass = "gap" if any(g in row_text for g in gap_set) else ""
+            cells = "".join(f"<td>{v}</td>" for v in row.values)
+            rows_html.append(f'<tr class="{klass}">{cells}</tr>')
+        header = "".join(f"<th>{c}</th>" for c in df.columns)
+        return _SWIMLANE_CSS + (
+            '<div class="aiv-swim"><table>'
+            f"<thead><tr>{header}</tr></thead>"
+            f"<tbody>{''.join(rows_html)}</tbody>"
+            "</table></div>"
+        )
     except Exception as e:
-        return f"<p>Could not load S2P: {e}</p>"
+        return _swimlane_fallback(gap_list, error=str(e))
+
+
+_DEFAULT_SWIMLANE_STAGES = [
+    ("Demand",       "Need identified",     "Business unit",   "Catalogue / approved-vendor list / new-need PR"),
+    ("PR creation",  "Requisition raised",  "Business unit",   "PR submitted with material, qty, plant, cost-centre"),
+    ("Approval",     "Workflow review",     "Department head", "Auto / manual approval based on value bands"),
+    ("Sourcing",     "Buyer assignment",    "Procurement",     "RC, ASL or tender path chosen by archetype"),
+    ("Contract",     "PO creation",         "Procurement",     "PO drafted, terms applied, vendor confirmed"),
+    ("Receipt",      "Goods / service in",  "Plant ops",       "GR posted, quality check"),
+    ("Settlement",   "Invoice + payment",   "AP / Treasury",   "3-way match + payment release per terms"),
+]
+
+
+def _swimlane_fallback(gap_list, error: str = "") -> str:
+    """Render a default S2P swimlane when no Process file is shipped."""
+    gap_set = {g.lower() for g in (gap_list or [])}
+    rows = []
+    for stage, summary, owner, notes in _DEFAULT_SWIMLANE_STAGES:
+        text = (stage + " " + summary).lower()
+        klass = "gap" if any(g in text for g in gap_set) else ""
+        rows.append(f"<tr class=\"{klass}\"><td>{stage}</td><td>{summary}</td><td>{owner}</td><td>{notes}</td></tr>")
+    note = ""
+    if error:
+        note = f'<p style="font-size:12px;color:#64708A;margin-top:8px">Could not load S2P file ({error}). Showing the canonical 7-stage S2P map.</p>'
+    return _SWIMLANE_CSS + (
+        '<div class="aiv-swim"><table>'
+        "<thead><tr><th>Stage</th><th>Activity</th><th>Owner</th><th>Notes</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table>" + note + "</div>"
+    )
 
 
 @router.get("/session/{session_id}/results")
@@ -78,7 +130,7 @@ def get_swimlane(session_id: str, kpi_gaps: str = ""):
                 html = _build_swimlane_from_s2p(p, gap_list)
                 return {"html": html}
             except Exception: pass
-    return {"html": "<p>Process map not available — place S2P_Process_L1_L5_RACI.xlsx in Process file/</p>"}
+    return {"html": _swimlane_fallback(gap_list)}
 
 
 @router.get("/session/{session_id}/results/swimlane-interactive")
