@@ -19,7 +19,19 @@ Gemini-grounded transformation recommendations.
 
 ## Quick start
 
-### Run from GitHub — no local install required
+### Deploy the whole app to Google Cloud (one command, $300 free credit)
+
+```bash
+# In Google Cloud Shell (https://shell.cloud.google.com)
+git clone https://github.com/guptalavesh/ProcAssesment.git
+cd ProcAssesment
+bash scripts/deploy_to_gcp.sh
+```
+
+You get a live HTTPS URL on Cloud Run (~3-5 min first run). Full architecture, cost
+breakdown, and overrides in **[docs/DEPLOY_TO_GCP.md](docs/DEPLOY_TO_GCP.md)**.
+
+### Run from GitHub — no local install (development)
 
 See **[docs/SETUP_FROM_GITHUB.md](docs/SETUP_FROM_GITHUB.md)** for three browser-only paths:
 

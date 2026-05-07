@@ -1,17 +1,12 @@
-# ─────────────────────────────────────────────────────────────────────────
-# Build the app and deploy it to Google Cloud Run.
+# Build the app and deploy it to Cloud Run.
 # Uses Workload Identity Federation — no service-account JSON keys needed.
 #
-# One-time GCP setup (run in Cloud Shell — see docs/SETUP_FROM_GITHUB.md):
-#   1. Create a workload identity pool + provider for github.com
-#   2. Create a service account with roles: aiplatform.user, run.admin,
-#      artifactregistry.writer, storage.admin
-#   3. Bind the GitHub repo to the service account via workloadIdentityUser
-#   4. Add three GitHub repository secrets:
-#        - GCP_PROJECT_ID
-#        - GCP_WORKLOAD_IDENTITY_PROVIDER
-#        - GCP_SERVICE_ACCOUNT
-# ─────────────────────────────────────────────────────────────────────────
+# One-time GCP setup: see docs/SETUP_FROM_GITHUB.md (Option C).
+# Required GitHub secrets:
+#   GCP_PROJECT_ID
+#   GCP_WORKLOAD_IDENTITY_PROVIDER
+#   GCP_SERVICE_ACCOUNT             (deployer SA, e.g. github-actions@PROJECT.iam.gserviceaccount.com)
+#   GCP_RUNTIME_SERVICE_ACCOUNT     (runtime SA, e.g. procassesment-run@PROJECT.iam.gserviceaccount.com)
 
 name: Deploy to Cloud Run
 
@@ -21,12 +16,13 @@ on:
     branches: [main]
 
 permissions:
-  id-token: write   # Required for Workload Identity Federation
+  id-token: write
   contents: read
 
 env:
-  REGION: us-central1
+  REGION:  us-central1
   SERVICE: procassesment
+  REPO:    app
 
 jobs:
   deploy:
@@ -43,26 +39,36 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with: { node-version: '20' }
-
-      - name: Build frontend
-        working-directory: frontend
-        run: |
-          npm ci
-          npm run build
-
-      - name: Build & deploy backend image
+      - name: Build image with Cloud Build
         run: |
           gcloud builds submit \
-            --tag "${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/app/${SERVICE}:${GITHUB_SHA}" \
-            --project "${{ secrets.GCP_PROJECT_ID }}"
+            --config=cloudbuild.yaml \
+            --substitutions="_REGION=${REGION},_SERVICE=${SERVICE},SHORT_SHA=${GITHUB_SHA::7}" \
+            --project="${{ secrets.GCP_PROJECT_ID }}"
 
-          gcloud run deploy "$SERVICE" \
-            --image "${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/app/${SERVICE}:${GITHUB_SHA}" \
-            --region "$REGION" \
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE}" \
+            --image "${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/${SERVICE}:${GITHUB_SHA::7}" \
+            --region "${REGION}" \
             --platform managed \
+            --service-account "${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
+            --min-instances 0 \
+            --max-instances 1 \
+            --concurrency 40 \
+            --cpu 1 \
+            --memory 1Gi \
+            --timeout 600 \
+            --port 8080 \
+            --set-env-vars "GEMINI_VERTEX_PROJECT=${{ secrets.GCP_PROJECT_ID }},GEMINI_VERTEX_LOCATION=${REGION},GEMINI_MODEL=gemini-2.5-pro" \
             --allow-unauthenticated \
-            --set-env-vars "GEMINI_VERTEX_PROJECT=${{ secrets.GCP_PROJECT_ID }},GEMINI_VERTEX_LOCATION=${REGION}" \
-            --project "${{ secrets.GCP_PROJECT_ID }}"
+            --project "${{ secrets.GCP_PROJECT_ID }}" \
+            --quiet
+
+      - name: Print URL
+        run: |
+          URL=$(gcloud run services describe "${SERVICE}" \
+            --region="${REGION}" --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --format='value(status.url)')
+          echo "Deployed to: $URL"
+          echo "$URL" >> "$GITHUB_STEP_SUMMARY"

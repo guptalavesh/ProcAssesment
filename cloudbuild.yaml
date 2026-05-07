@@ -1,0 +1,31 @@
+# Cloud Build pipeline used by `gcloud run deploy --source .` and by the
+# GitHub Actions workflow. Builds the Docker image and stores it in
+# Artifact Registry. Cloud Run then pulls the image.
+#
+# Substitutions provided by the deploy script / workflow:
+#   _REGION    = us-central1
+#   _SERVICE   = procassesment
+
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/app/${_SERVICE}:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/app/${_SERVICE}:latest'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/app/${_SERVICE}'
+
+substitutions:
+  _REGION: us-central1
+  _SERVICE: procassesment
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8

@@ -1,0 +1,54 @@
+# Declarative Cloud Run service definition.
+# Apply with:
+#   gcloud run services replace gcp/service.yaml --region=us-central1
+#
+# Notes for the $300 free credit:
+#   - max-instances: '1'  → keeps in-memory sessions sticky (single replica).
+#   - min-instances: '0'  → scales to zero when idle (no idle cost).
+#   - cpu-throttling: true → cheaper CPU billing when not handling requests.
+#   - timeoutSeconds: 600 → assessment runs can take ~30-60s; SSE keeps the
+#     connection open longer.
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: procassesment
+  annotations:
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: '0'
+        autoscaling.knative.dev/maxScale: '1'
+        run.googleapis.com/cpu-throttling: 'true'
+        run.googleapis.com/startup-cpu-boost: 'true'
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      timeoutSeconds: 600
+      containerConcurrency: 40
+      containers:
+        - image: PLACEHOLDER_IMAGE   # Replaced by deploy script with the built image URI
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: '1'
+              memory: '1Gi'
+          env:
+            - name: GEMINI_VERTEX_LOCATION
+              value: us-central1
+            - name: GEMINI_MODEL
+              value: gemini-2.5-pro
+            # GEMINI_VERTEX_PROJECT is set by the deploy script (--update-env-vars)
+          startupProbe:
+            httpGet:
+              path: /health
+            initialDelaySeconds: 0
+            timeoutSeconds: 1
+            periodSeconds: 5
+            failureThreshold: 12
+  traffic:
+    - latestRevision: true
+      percent: 100

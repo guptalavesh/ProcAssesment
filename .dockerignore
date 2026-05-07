@@ -1,0 +1,33 @@
+# Local artefacts that should never end up in the build context.
+.git
+.github
+.devcontainer
+.vscode
+.idea
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node — frontend deps are installed inside the Docker stage.
+frontend/node_modules/
+frontend/dist/
+node_modules/
+
+# Logs / OS noise
+*.log
+.DS_Store
+Thumbs.db
+
+# Backend secrets and runtime outputs
+backend/.env
+backend/outputs/
+
+# Local docs that don't need shipping
+docs/
+*.md
+!README.md
+REBUILD_*.md
