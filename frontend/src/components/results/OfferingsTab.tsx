@@ -174,7 +174,7 @@ export default function OfferingsTab({ kpiAssessment, engagement, sessionId, dim
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className={cn('acc-card p-0 overflow-hidden', relevant && 'border-brand-purple/40 bg-purple-50/20')}
+                className={cn('acc-card p-0 overflow-hidden', relevant && 'border-brand-purple/40 bg-accent-50/20')}
               >
                 <button
                   onClick={() => toggle(o.id)}

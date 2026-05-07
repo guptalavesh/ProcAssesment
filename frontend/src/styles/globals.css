@@ -1,73 +1,197 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+/* ============================================================
+   AIVault design tokens (mirrors colors_and_type.css from the
+   design bundle). Keep this in sync with tailwind.config.ts.
+   ============================================================ */
+:root {
+  /* Surfaces */
+  --bg-app:      #F8F9FB;
+  --bg-surface:  #FFFFFF;
+  --bg-sunken:   #F1F3F7;
+  --bg-muted:    #F1F3F7;
+  --bg-overlay:  rgba(15, 20, 28, 0.55);
+
+  /* Foregrounds */
+  --fg-1: #0F141C;
+  --fg-2: #2F3849;
+  --fg-3: #64708A;
+  --fg-4: #8F98AC;
+
+  /* Borders */
+  --border-subtle:  #E7EAF1;
+  --border-default: #D8DDE7;
+  --border-strong:  #BCC3D2;
+
+  /* Accent (cobalt) */
+  --accent:        #2251FF;
+  --accent-hover:  #1A41E0;
+  --accent-press:  #1632B0;
+  --accent-soft:   #EEF2FF;
+  --accent-soft-fg:#1632B0;
+
+  /* Agent wash */
+  --agent-surface: #F1F4FF;
+  --agent-border:  #DCE3FF;
+  --agent-fg:      #1632B0;
+
+  /* Motion */
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast:    120ms;
+  --dur-base:    180ms;
+}
 
 @layer base {
+  html, body, #root { height: 100%; }
   body {
-    @apply font-sans text-brand-dark bg-white;
+    @apply font-sans text-neutral-900 bg-neutral-50;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
   }
   * { box-sizing: border-box; }
+
+  /* Tabular numerics on table cells by default */
+  table { font-variant-numeric: tabular-nums; }
+
+  /* Selection uses the cobalt soft */
+  ::selection { background: #D9E1FF; color: #0A1759; }
 }
 
 @layer components {
-  /* ── Accenture card ── */
+  /* ── Card ──────────────────────────────────────────────────── */
   .acc-card {
-    @apply bg-white border border-bg-secondary rounded-xl p-4 shadow-sm;
+    @apply bg-white border border-neutral-200 rounded-md p-6 shadow-sm;
   }
 
-  /* ── Score badge ── */
+  /* ── Page header (quiet, AIVault-style — no gradient) ─────── */
+  .page-header {
+    @apply flex items-end justify-between gap-4 mb-5;
+  }
+
+  /* ── Eyebrow (uppercase + tracked) ─────────────────────────── */
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.06em] text-neutral-500;
+  }
+
+  /* ── Tabular numerics + IDs ────────────────────────────────── */
+  .num {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .id {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--fg-2);
+  }
+
+  /* ── Score badge ───────────────────────────────────────────── */
   .score-badge {
-    @apply inline-block px-2 py-0.5 rounded text-xs font-bold;
+    @apply inline-block px-2 py-0.5 rounded-xs text-xs font-semibold;
   }
 
-  /* ── Accenture table ── */
+  /* ── Table (data-density first) ────────────────────────────── */
   .acc-table {
     @apply w-full text-sm border-collapse;
   }
   .acc-table th {
-    @apply text-left text-xs font-bold text-brand-dark px-3 py-2
-           bg-bg-secondary border-b border-bg-muted uppercase tracking-wide;
+    @apply text-left text-[11px] font-semibold text-neutral-500 px-4 py-2.5
+           bg-neutral-100 border-b border-neutral-200 uppercase tracking-[0.06em];
   }
   .acc-table td {
-    @apply px-3 py-2 border-b border-bg-secondary/50 text-black;
+    @apply px-4 py-3 border-b border-neutral-150 text-neutral-900;
   }
   .acc-table tbody tr:hover {
-    @apply bg-bg-secondary/40;
+    @apply bg-neutral-50;
   }
 
-  /* ── Page header (dark gradient) ── */
-  .page-header {
-    @apply rounded-xl p-5 mb-5
-           bg-gradient-to-r from-brand-dark via-brand-mid to-brand-purple
-           text-white shadow-md;
+  /* ── Buttons ───────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 h-8 px-3
+           rounded-sm font-medium text-[13px] leading-none border border-transparent
+           transition-colors whitespace-nowrap;
+    transition-timing-function: var(--ease-out);
+    transition-duration: var(--dur-base);
   }
+  .btn:focus-visible { @apply outline-none shadow-focus; }
+  .btn[disabled] { @apply opacity-50 cursor-not-allowed; }
 
-  /* ── Focus ring ── */
+  .btn-pri  { @apply bg-accent text-white; }
+  .btn-pri:hover  { background: var(--accent-hover); }
+  .btn-pri:active { background: var(--accent-press); }
+
+  .btn-sec  { @apply bg-white text-neutral-900 border-neutral-200; }
+  .btn-sec:hover  { @apply border-neutral-300 bg-neutral-50; }
+
+  .btn-ghost { @apply bg-transparent text-neutral-700; }
+  .btn-ghost:hover { @apply bg-neutral-100 text-neutral-900; }
+
+  .btn-danger { @apply bg-danger text-white; }
+
+  .btn-lg  { @apply h-10 px-4 text-sm; }
+
+  /* ── Input ─────────────────────────────────────────────────── */
+  .input {
+    @apply h-8 px-2.5 border border-neutral-200 rounded-sm bg-white
+           text-[13px] text-neutral-900 w-full;
+    transition: border-color var(--dur-base) var(--ease-out),
+                box-shadow   var(--dur-base) var(--ease-out);
+  }
+  .input::placeholder { @apply text-neutral-400; }
+  .input:hover { @apply border-neutral-300; }
+  .input:focus { @apply outline-none border-accent shadow-focus; }
+  .input-lg { @apply h-10 px-3 text-sm; }
+
+  /* ── Pill (status capsule) ─────────────────────────────────── */
+  .pill {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full
+           text-[11px] font-medium leading-4 whitespace-nowrap;
+  }
+  .pill .dot {
+    @apply w-[5px] h-[5px] rounded-full flex-shrink-0;
+  }
+  .pill-success { @apply bg-success-soft text-success-fg; }
+  .pill-success .dot { background: #12B76A; }
+  .pill-warning { @apply bg-warning-soft text-warning-fg; }
+  .pill-warning .dot { background: #F79009; }
+  .pill-danger  { @apply bg-danger-soft  text-danger-fg; }
+  .pill-danger  .dot { background: #F04438; }
+  .pill-info    { @apply bg-info-soft    text-info-fg; }
+  .pill-info    .dot { background: #2E90FA; }
+  .pill-draft   { @apply bg-neutral-100  text-neutral-700; }
+  .pill-draft   .dot { @apply bg-neutral-400; }
+  .pill-agent   { @apply bg-agent-surface text-agent-fg border border-agent-border; }
+  .pill-agent   .dot { background: var(--accent); animation: pulse-soft 1.4s var(--ease-out) infinite; }
+
+  /* ── Focus ring helper (still used by some inputs/buttons) ─ */
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-1;
+    @apply focus:outline-none focus:shadow-focus;
   }
 
-  /* ── CTA hover scale ── */
+  /* ── CTA hover (kept for back-compat with existing markup) ─ */
   .btn-cta {
-    @apply hover:scale-[1.02] active:scale-[0.98] transition-transform;
+    @apply transition-transform;
+  }
+
+  /* ── Agent surface helper ──────────────────────────────────── */
+  .agent-surface {
+    @apply bg-agent-surface border border-agent-border;
   }
 }
 
-/* ── Animated gradient for Landing hero ── */
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50%       { background-position: 100% 50%; }
-}
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient-shift 8s ease infinite;
+/* ── Agent dot pulse — the one ambient motion in the system ── */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
 }
 
-/* ── Scrollbar styling ── */
-::-webkit-scrollbar       { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #f3f0f8; }
-::-webkit-scrollbar-thumb { background: #a100ff55; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #a100ff99; }
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(15, 20, 28, 0.18); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(15, 20, 28, 0.32); }

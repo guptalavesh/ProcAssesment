@@ -11,14 +11,14 @@ interface Props {
 
 export default function EmptyState({ Icon, title, description, action, className }: Props) {
   return (
-    <div className={cn('text-center py-10 px-4', className)}>
+    <div className={cn('text-center py-12 px-4', className)}>
       {Icon && (
-        <div className="mx-auto w-12 h-12 rounded-full bg-bg-secondary/60 flex items-center justify-center mb-3">
-          <Icon size={22} className="text-brand-purple" />
+        <div className="mx-auto w-12 h-12 rounded-md bg-accent-50 flex items-center justify-center mb-3">
+          <Icon size={20} className="text-accent" />
         </div>
       )}
-      <p className="text-sm font-semibold text-brand-dark mb-1">{title}</p>
-      {description && <p className="text-xs text-caption max-w-sm mx-auto">{description}</p>}
+      <p className="text-[14px] font-semibold text-neutral-900 mb-1">{title}</p>
+      {description && <p className="text-[12px] text-neutral-500 max-w-sm mx-auto leading-relaxed">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   )

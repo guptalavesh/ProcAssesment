@@ -127,7 +127,7 @@ export default function UploadPage() {
           <div className="flex-1 min-w-[160px] max-w-xs">
             <div className="relative w-full h-1.5 bg-bg-muted rounded-full overflow-hidden">
               <motion.div
-                className="h-1.5 rounded-full bg-gradient-to-r from-brand-dark to-brand-purple"
+                className="h-1.5 rounded-full bg-accent"
                 initial={false}
                 animate={{ width: `${requiredCount ? (uploadedRequired / requiredCount) * 100 : 0}%` }}
                 transition={{ duration: 0.4 }}
@@ -153,7 +153,7 @@ export default function UploadPage() {
               <label className="text-xs font-semibold text-brand-dark">{slot.label}</label>
               {slot.required && <span className="text-red-500 text-xs">*</span>}
               {sheets[slot.key] && (
-                <span className="text-[10px] text-brand-purple bg-purple-50 border border-brand-purple/20 rounded px-1.5 py-0.5 ml-1">
+                <span className="text-[10px] text-brand-purple bg-accent-50 border border-brand-purple/20 rounded px-1.5 py-0.5 ml-1">
                   sheet: {sheets[slot.key]}
                 </span>
               )}

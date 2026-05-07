@@ -147,7 +147,7 @@ export default function DiscoveryQRESection({ sessionId }: DiscoveryQRESectionPr
           <span className="text-sm font-bold text-brand-dark">Discovery QRE</span>
           <span className="text-xs text-caption">(Optional — qualitative inputs for AI insights)</span>
           {savedCount > 0 && (
-            <span className="ml-1 text-xs font-semibold text-brand-purple bg-purple-50 border border-brand-purple/20 px-2 py-0.5 rounded">
+            <span className="ml-1 text-xs font-semibold text-brand-purple bg-accent-50 border border-brand-purple/20 px-2 py-0.5 rounded">
               {answeredCount}/{totalQuestions} answered · {savedCount} saved
             </span>
           )}
@@ -209,7 +209,7 @@ export default function DiscoveryQRESection({ sessionId }: DiscoveryQRESectionPr
                         return (
                           <div key={q.id} className={cn(
                             'border rounded-lg p-3 transition-colors',
-                            filled ? 'border-brand-purple/30 bg-purple-50/30' : 'border-bg-secondary'
+                            filled ? 'border-brand-purple/30 bg-accent-50/30' : 'border-bg-secondary'
                           )}>
                             <div className="flex items-start gap-2 mb-2">
                               <span className="flex-shrink-0 w-7 h-5 rounded text-[10px] font-bold flex items-center justify-center bg-brand-purple/10 text-brand-purple">

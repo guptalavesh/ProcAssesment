@@ -66,7 +66,7 @@ function KpiRow({ kpi, highlighted }: { kpi: KPIResult; highlighted?: boolean })
       <tr
         className={cn(
           'cursor-pointer hover:bg-bg-secondary/60 transition-colors',
-          highlighted && 'bg-purple-100 animate-pulse',
+          highlighted && 'bg-accent-100 animate-pulse',
         )}
         onClick={() => setOpen(o => !o)}
       >
@@ -120,7 +120,7 @@ function KpiRow({ kpi, highlighted }: { kpi: KPIResult; highlighted?: boolean })
                     </div>
                   )}
                   {kpi.action && (
-                    <div className="p-3 bg-purple-50 border border-purple-100 rounded text-xs">
+                    <div className="p-3 bg-accent-50 border border-accent-100 rounded text-xs">
                       <p className="font-bold text-brand-dark mb-1 uppercase tracking-wide text-[10px]">Recommended Action</p>
                       <p className="text-brand-dark leading-relaxed">{kpi.action}</p>
                     </div>
@@ -507,7 +507,7 @@ export default function ResultsPage() {
           <button
             onClick={() => setShowTimelineModal(true)}
             disabled={downloadingPpt}
-            className="flex items-center gap-1.5 text-xs border border-brand-purple text-brand-purple px-3 py-1.5 rounded-lg font-semibold hover:bg-purple-50 transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.5 text-xs border border-brand-purple text-brand-purple px-3 py-1.5 rounded-lg font-semibold hover:bg-accent-50 transition-colors disabled:opacity-60"
           >
             {downloadingPpt ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
             KPI Deck

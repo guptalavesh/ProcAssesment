@@ -5,7 +5,7 @@ import AccentureMark from '@/components/ui/AccentureMark'
 
 export default function NotFoundPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-dark via-brand-mid to-brand-purple text-white flex items-center justify-center px-6">
+    <div className="min-h-screen bg-accent text-white flex items-center justify-center px-6">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}

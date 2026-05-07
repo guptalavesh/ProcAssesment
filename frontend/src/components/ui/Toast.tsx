@@ -50,17 +50,17 @@ const ICONS: Record<ToastType, typeof CheckCircle> = {
 }
 
 const STYLES: Record<ToastType, string> = {
-  success: 'bg-white border-green-400 text-green-800',
-  error:   'bg-white border-red-400 text-red-800',
-  warning: 'bg-white border-amber-400 text-amber-800',
-  info:    'bg-white border-brand-purple text-brand-dark',
+  success: 'bg-white border-success text-neutral-900',
+  error:   'bg-white border-danger text-neutral-900',
+  warning: 'bg-white border-warning text-neutral-900',
+  info:    'bg-white border-accent text-neutral-900',
 }
 
 const ICON_COLORS: Record<ToastType, string> = {
-  success: 'text-green-500',
-  error:   'text-red-500',
-  warning: 'text-amber-500',
-  info:    'text-brand-purple',
+  success: 'text-success',
+  error:   'text-danger',
+  warning: 'text-warning',
+  info:    'text-accent',
 }
 
 function ToastItem({ t, onDismiss }: { t: Toast; onDismiss: (id: string) => void }) {
@@ -68,21 +68,21 @@ function ToastItem({ t, onDismiss }: { t: Toast; onDismiss: (id: string) => void
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 16, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
-      transition={{ duration: 0.22, ease: 'easeOut' }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        'w-80 flex items-start gap-3 px-4 py-3 rounded-xl border-l-4 shadow-lg',
+        'w-80 flex items-start gap-3 px-4 py-3 rounded-md border border-neutral-200 border-l-2 shadow-lg',
         STYLES[t.type],
       )}
     >
       <Icon size={16} className={cn('flex-shrink-0 mt-0.5', ICON_COLORS[t.type])} />
-      <p className="text-sm leading-snug flex-1">{t.message}</p>
+      <p className="text-[13px] leading-snug flex-1 text-neutral-700">{t.message}</p>
       <button
         onClick={() => onDismiss(t.id)}
         aria-label="Dismiss notification"
-        className="flex-shrink-0 text-current opacity-40 hover:opacity-80 transition-opacity"
+        className="flex-shrink-0 text-neutral-400 hover:text-neutral-700 transition-colors"
       >
         <X size={13} />
       </button>

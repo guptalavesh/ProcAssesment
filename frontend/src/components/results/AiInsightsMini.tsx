@@ -47,7 +47,7 @@ function KpiChip({ name, onClick, tone = 'neutral' }: { name: string; onClick?: 
   const toneCls =
     tone === 'red'   ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200'
     : tone === 'green' ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'
-    : 'bg-purple-50 text-brand-purple border-purple-200 hover:bg-purple-100'
+    : 'bg-accent-50 text-brand-purple border-accent-200 hover:bg-accent-100'
   return (
     <button
       type="button"
@@ -153,7 +153,7 @@ function RcaContent({ data }: { data: RcaInsights }) {
           <p className="text-[10px] text-brand-dark font-bold uppercase tracking-wide mb-2">Intervention Priority</p>
           <div className="space-y-2">
             {data.intervention_priority?.map((ip, i) => (
-              <div key={i} className="bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">
+              <div key={i} className="bg-accent-50 border border-accent-100 rounded-lg px-3 py-2">
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-brand-purple text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0">{i+1}</span>
                   <p className="text-xs font-bold text-brand-dark">{ip.area}</p>
@@ -176,7 +176,7 @@ function OfferingsContent({ data, onKpiClick }: { data: OfferingsInsights; onKpi
       <div className="space-y-2">
         <p className="text-[10px] text-brand-purple font-bold uppercase tracking-wide">Top Recommended Offerings</p>
         {data.top_offerings?.map((o, i) => (
-          <div key={i} className="bg-purple-50 border border-purple-100 rounded-lg px-3 py-2.5">
+          <div key={i} className="bg-accent-50 border border-accent-100 rounded-lg px-3 py-2.5">
             <div className="flex items-start gap-2">
               <span className="w-5 h-5 rounded-full bg-brand-purple text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{o.priority}</span>
               <div className="flex-1 min-w-0">
@@ -244,8 +244,8 @@ export default function AiInsightsMini({ sessionId, context, onKpiClick }: AiIns
 
   const canExpand = !!data || !!error
   const headerCls = cn(
-    'w-full flex items-center justify-between px-4 py-2.5 bg-purple-50/60 transition-colors text-left',
-    canExpand && 'hover:bg-purple-100/60 cursor-pointer',
+    'w-full flex items-center justify-between px-4 py-2.5 bg-accent-50/60 transition-colors text-left',
+    canExpand && 'hover:bg-accent-100/60 cursor-pointer',
     !canExpand && 'cursor-default',
     open && canExpand && 'border-b border-bg-secondary',
   )

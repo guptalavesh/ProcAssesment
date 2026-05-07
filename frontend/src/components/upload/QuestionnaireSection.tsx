@@ -187,7 +187,7 @@ export default function QuestionnaireSection({ sessionId, skillPath }: Props) {
                       <div className="flex items-center gap-2 min-w-0 flex-wrap">
                         <span className="text-sm font-bold text-brand-dark">{dim.title}</span>
                         {((dim.weight_pct ?? dim.weight ?? 0) > 0) && (
-                          <span className="text-[10px] text-brand-purple bg-purple-50 border border-brand-purple/20 rounded px-1.5 py-0.5">
+                          <span className="text-[10px] text-brand-purple bg-accent-50 border border-brand-purple/20 rounded px-1.5 py-0.5">
                             {dim.weight_pct ?? dim.weight}% of overall
                           </span>
                         )}
@@ -241,8 +241,8 @@ export default function QuestionnaireSection({ sessionId, skillPath }: Props) {
                                           className={cn(
                                             'flex items-start gap-2 text-left text-[11px] border rounded px-2.5 py-1.5 transition-colors',
                                             isSelected
-                                              ? 'border-brand-purple bg-purple-50/60 text-brand-dark'
-                                              : 'border-bg-secondary hover:border-brand-purple/40 hover:bg-purple-50/30 text-brand-dark/85'
+                                              ? 'border-brand-purple bg-accent-50/60 text-brand-dark'
+                                              : 'border-bg-secondary hover:border-brand-purple/40 hover:bg-accent-50/30 text-brand-dark/85'
                                           )}
                                         >
                                           <span className={cn(

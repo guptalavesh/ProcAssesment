@@ -6,7 +6,7 @@ interface Props {
   variant?: 'on-dark' | 'on-light'
 }
 
-export default function ScoreGauge({ score, size = 96, variant = 'on-dark' }: Props) {
+export default function ScoreGauge({ score, size = 96, variant = 'on-light' }: Props) {
   const [animated, setAnimated] = useState(0)
 
   useEffect(() => {
@@ -53,8 +53,8 @@ export default function ScoreGauge({ score, size = 96, variant = 'on-dark' }: Pr
   const trackEnd = startAngle + totalAngle
   const fillEnd = startAngle + totalAngle * fraction
 
-  const trackStroke = variant === 'on-dark' ? 'rgba(255,255,255,0.20)' : 'rgba(70,0,115,0.12)'
-  const fillStroke  = variant === 'on-dark' ? 'rgba(255,255,255,0.90)' : '#a100ff'
+  const trackStroke = variant === 'on-dark' ? 'rgba(255,255,255,0.20)' : '#E7EAF1'
+  const fillStroke  = variant === 'on-dark' ? 'rgba(255,255,255,0.90)' : '#2251FF'
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0">

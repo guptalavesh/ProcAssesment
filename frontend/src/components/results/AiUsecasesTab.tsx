@@ -56,7 +56,7 @@ export default function AiUsecasesTab({ sessionId }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="acc-card bg-purple-50/40 border-brand-purple/30">
+      <div className="acc-card bg-accent-50/40 border-brand-purple/30">
         <div className="flex items-center gap-2 mb-1">
           <Sparkles size={14} className="text-brand-purple" />
           <p className="text-sm font-bold text-brand-dark">Agentic AI &amp; Use-Case Library</p>
@@ -74,7 +74,7 @@ export default function AiUsecasesTab({ sessionId }: Props) {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
-            className={cn('acc-card p-4', uc.is_relevant && 'border-brand-purple/40 bg-purple-50/20')}
+            className={cn('acc-card p-4', uc.is_relevant && 'border-brand-purple/40 bg-accent-50/20')}
           >
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex items-center gap-2">

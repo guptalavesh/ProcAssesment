@@ -6,12 +6,16 @@ interface Props {
 
 export default function PageHeader({ title, subtitle, right }: Props) {
   return (
-    <div className="page-header flex items-center justify-between">
+    <div className="page-header">
       <div>
-        <h1 className="text-white text-xl font-bold m-0">{title}</h1>
-        {subtitle && <p className="text-white/80 text-sm mt-0.5">{subtitle}</p>}
+        <h1 className="text-[22px] leading-7 font-semibold tracking-[-0.01em] text-neutral-900 m-0">
+          {title}
+        </h1>
+        {subtitle && (
+          <p className="text-[13px] text-neutral-500 mt-1">{subtitle}</p>
+        )}
       </div>
-      {right && <div>{right}</div>}
+      {right && <div className="flex items-center gap-2">{right}</div>}
     </div>
   )
 }

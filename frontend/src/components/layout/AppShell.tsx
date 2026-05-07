@@ -17,7 +17,7 @@ export default function AppShell() {
 
   if (isNoShell(location.pathname)) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-neutral-50">
         <ToastContainer />
         <AnimatePresence mode="wait">
           <motion.div
@@ -25,7 +25,7 @@ export default function AppShell() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           >
             {children}
           </motion.div>
@@ -39,7 +39,7 @@ export default function AppShell() {
 
   if (!isWizard) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-neutral-50">
         <ToastContainer />
         <AnimatePresence mode="wait">
           <motion.div
@@ -47,7 +47,7 @@ export default function AppShell() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           >
             {children}
           </motion.div>
@@ -57,18 +57,18 @@ export default function AppShell() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
+    <div className="flex h-screen overflow-hidden bg-neutral-50">
       <Sidebar />
       <ToastContainer />
       <main className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="p-5 max-w-6xl mx-auto"
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            className="px-7 py-6 max-w-7xl mx-auto"
           >
             {children}
           </motion.div>

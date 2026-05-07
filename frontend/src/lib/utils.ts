@@ -6,19 +6,19 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function scoreColor(score: number | null | undefined): string {
-  if (score === null || score === undefined) return '#96968c'
-  if (score >= 3.5) return '#2E7D32'
-  if (score >= 2.5) return '#1565C0'
-  if (score >= 1.5) return '#E65100'
-  return '#C62828'
+  if (score === null || score === undefined) return '#8F98AC'
+  if (score >= 3.5) return '#039855'
+  if (score >= 2.5) return '#2251FF'
+  if (score >= 1.5) return '#DC6803'
+  return '#D92D20'
 }
 
 export function scoreBg(score: number | null | undefined): string {
-  if (score === null || score === undefined) return 'bg-bg-muted text-caption'
-  if (score >= 3.5) return 'bg-green-100 text-green-800'
-  if (score >= 2.5) return 'bg-blue-100 text-blue-800'
-  if (score >= 1.5) return 'bg-orange-100 text-orange-800'
-  return 'bg-red-100 text-red-800'
+  if (score === null || score === undefined) return 'bg-neutral-100 text-neutral-500'
+  if (score >= 3.5) return 'bg-success-soft text-success-fg'
+  if (score >= 2.5) return 'bg-accent-50 text-accent-700'
+  if (score >= 1.5) return 'bg-warning-soft text-warning-fg'
+  return 'bg-danger-soft text-danger-fg'
 }
 
 export function scoreLabel(score: number | null | undefined): string {

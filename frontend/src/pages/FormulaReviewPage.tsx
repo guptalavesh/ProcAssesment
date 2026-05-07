@@ -181,7 +181,7 @@ function KpiCard({ kpi, override, paramGroup, onSave, onReset, onParamChange }: 
 
   return (
     <div className={cn('rounded-xl border overflow-hidden shadow-sm transition-all',
-      (hasOverride || hasParamChange) ? 'border-brand-purple/50 bg-purple-50/20' : 'border-gray-200 bg-white')}>
+      (hasOverride || hasParamChange) ? 'border-brand-purple/50 bg-accent-50/20' : 'border-gray-200 bg-white')}>
       <button onClick={() => setExpanded(e => !e)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50/60 transition-colors">
         <div className="flex-1 min-w-0">
@@ -193,7 +193,7 @@ function KpiCard({ kpi, override, paramGroup, onSave, onReset, onParamChange }: 
               kpi.direction === 'lower_is_better' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200')}>
               {kpi.direction === 'lower_is_better' ? '↓ lower = better' : '↑ higher = better'}
             </span>
-            {hasOverride && <span className="text-[10px] text-brand-purple font-semibold bg-purple-100 px-2 py-0.5 rounded-full border border-purple-300">✎ Benchmark</span>}
+            {hasOverride && <span className="text-[10px] text-brand-purple font-semibold bg-accent-100 px-2 py-0.5 rounded-full border border-accent-300">✎ Benchmark</span>}
             {hasParamChange && <span className="text-[10px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">⚙ Parameters</span>}
           </div>
           <p className="text-[11px] text-caption mt-0.5 font-mono truncate">{effectiveFormula}</p>
@@ -492,18 +492,18 @@ export default function FormulaReviewPage() {
             <p className="text-amber-700">Change how KPI values are computed from raw data (e.g. outlier trim, grace period).</p>
           </div>
         </div>
-        <div className="flex items-start gap-2 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2.5">
+        <div className="flex items-start gap-2 bg-accent-50 border border-accent-100 rounded-lg px-3 py-2.5">
           <Pencil size={13} className="text-brand-purple flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold text-brand-purple">Benchmarks</p>
-            <p className="text-purple-700">Change the reference target that determines the 1–4 maturity score.</p>
+            <p className="text-accent-700">Change the reference target that determines the 1–4 maturity score.</p>
           </div>
         </div>
       </div>
 
       {totalChanges > 0 && (
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 bg-purple-50 border border-brand-purple/30 rounded-xl px-4 py-3">
+          className="flex items-center gap-3 bg-accent-50 border border-brand-purple/30 rounded-xl px-4 py-3">
           <CheckCircle2 size={15} className="text-brand-purple flex-shrink-0" />
           <p className="text-sm text-brand-purple font-medium flex-1">
             {paramChangeCount > 0 && `${paramChangeCount} parameter${paramChangeCount !== 1 ? 's' : ''} changed (re-computes values)`}

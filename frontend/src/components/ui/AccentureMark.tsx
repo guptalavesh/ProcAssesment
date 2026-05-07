@@ -3,16 +3,25 @@ interface Props {
   title?: string
 }
 
+// AIVault mark — hexagon-in-hexagon geometric. Single-color via currentColor
+// so callers can recolor with Tailwind text-* utilities.
 export default function AccentureMark({ className, title }: Props) {
   return (
     <svg
-      viewBox="0 0 328.0399 360"
-      fill="currentColor"
+      viewBox="0 0 32 32"
+      fill="none"
+      stroke="currentColor"
+      strokeLinejoin="round"
+      strokeWidth="1.6"
       className={className}
       role="img"
-      aria-label={title ?? 'Accenture'}
+      aria-label={title ?? 'AIVault'}
     >
-      <polygon points="0,360 328.0399,226.9993 328.0399,133.0008 0,0 0,93.9987 212.1184,180 0,266.0013" />
+      <path d="M16 4L27 10.25V19.75L16 26L5 19.75V10.25L16 4Z" />
+      <path
+        d="M16 11.25L21 14.0833V18.9167L16 21.75L11 18.9167V14.0833L16 11.25Z"
+        fill="currentColor"
+      />
     </svg>
   )
 }

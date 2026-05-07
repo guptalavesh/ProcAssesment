@@ -115,7 +115,7 @@ export default function RunningPage() {
         </div>
         <div className="w-full bg-bg-muted rounded-full h-3 mb-3 overflow-hidden">
           <motion.div
-            className="h-3 rounded-full bg-gradient-to-r from-brand-dark to-brand-purple"
+            className="h-3 rounded-full bg-accent"
             animate={{ width: `${pct}%` }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           />

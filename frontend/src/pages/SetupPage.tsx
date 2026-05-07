@@ -13,7 +13,7 @@ const INDUSTRIES = [
   'Paper & Agro', 'Textiles', 'Automotive', 'FMCG', 'Oil & Gas', 'Pharmaceuticals', 'Other'
 ]
 
-const ASSESSMENT_TYPES = ['Baseline', 'Interim Review', 'Post-Transformation', 'Annual Review']
+const ASSESSMENT_TYPES = ['Baseline', 'Interim review', 'Post-transformation', 'Annual review']
 
 export default function SetupPage() {
   const navigate = useNavigate()
@@ -72,39 +72,37 @@ export default function SetupPage() {
 
   return (
     <div>
-      <PageHeader title="Assessment Setup" subtitle="Configure engagement details and select a skill" />
+      <PageHeader title="Assessment setup" subtitle="Configure engagement details and select a skill" />
 
-      <p className="text-[11px] uppercase tracking-widest text-brand-purple font-semibold mb-3">Step 1 of 4 · Engagement details</p>
+      <p className="eyebrow mb-4">Step 1 of 4 · Engagement details</p>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">{error}</div>
+        <div className="mb-4 px-3 py-2 bg-danger-soft border border-danger/20 text-danger-fg rounded-sm text-[13px]">{error}</div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}>
           <div className="acc-card">
-            <h2 className="text-base font-bold text-brand-dark mb-4">Engagement Details</h2>
+            <h2 className="text-[15px] font-semibold text-neutral-900 mb-4">Engagement details</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-brand-dark mb-1">Client Name *</label>
+                <label className="block text-[12px] font-medium text-neutral-700 mb-1">Client name *</label>
                 <input value={form.client_name} onChange={f('client_name')}
                   placeholder="e.g. JSW Steel"
-                  className="w-full border border-bg-secondary rounded px-3 py-2 text-sm focus:outline-none focus:border-brand-purple" />
+                  className="input input-lg" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-brand-dark mb-1">Industry</label>
-                  <select value={form.industry} onChange={f('industry')}
-                    className="w-full border border-bg-secondary rounded px-3 py-2 text-sm focus:outline-none focus:border-brand-purple">
+                  <label className="block text-[12px] font-medium text-neutral-700 mb-1">Industry</label>
+                  <select value={form.industry} onChange={f('industry')} className="input input-lg">
                     {INDUSTRIES.map(i => <option key={i}>{i}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-brand-dark mb-1">Assessment Type</label>
-                  <select value={form.assessment_type} onChange={f('assessment_type')}
-                    className="w-full border border-bg-secondary rounded px-3 py-2 text-sm focus:outline-none focus:border-brand-purple">
+                  <label className="block text-[12px] font-medium text-neutral-700 mb-1">Assessment type</label>
+                  <select value={form.assessment_type} onChange={f('assessment_type')} className="input input-lg">
                     {ASSESSMENT_TYPES.map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
@@ -112,112 +110,120 @@ export default function SetupPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-brand-dark mb-1">Date</label>
-                  <input type="date" value={form.date} onChange={f('date')}
-                    className="w-full border border-bg-secondary rounded px-3 py-2 text-sm focus:outline-none focus:border-brand-purple" />
+                  <label className="block text-[12px] font-medium text-neutral-700 mb-1">Date</label>
+                  <input type="date" value={form.date} onChange={f('date')} className="input input-lg" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-brand-dark mb-1">Assessor Name</label>
+                  <label className="block text-[12px] font-medium text-neutral-700 mb-1">Assessor name</label>
                   <input value={form.assessor_name} onChange={f('assessor_name')}
                     placeholder="Your name"
-                    className="w-full border border-bg-secondary rounded px-3 py-2 text-sm focus:outline-none focus:border-brand-purple" />
+                    className="input input-lg" />
                 </div>
               </div>
 
               {selectedSkill?.is_procurement && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                  className="grid grid-cols-3 gap-3 pt-2 border-t border-bg-secondary">
+                  className="grid grid-cols-3 gap-3 pt-3 border-t border-neutral-150">
                   <div>
-                    <label className="block text-xs font-semibold text-brand-dark mb-1">FTE Count</label>
+                    <label className="block text-[12px] font-medium text-neutral-700 mb-1">FTE count</label>
                     <input type="number" value={form.fte_count} onChange={f('fte_count')}
-                      placeholder="e.g. 45"
-                      className="w-full border border-bg-secondary rounded px-3 py-2 text-sm focus:outline-none focus:border-brand-purple" />
+                      placeholder="e.g. 45" className="input input-lg" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-brand-dark mb-1">Annual Spend (₹ Cr)</label>
+                    <label className="block text-[12px] font-medium text-neutral-700 mb-1">Annual spend (₹ Cr)</label>
                     <input type="number" value={form.annual_spend} onChange={f('annual_spend')}
-                      placeholder="e.g. 500"
-                      className="w-full border border-bg-secondary rounded px-3 py-2 text-sm focus:outline-none focus:border-brand-purple" />
+                      placeholder="e.g. 500" className="input input-lg" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-brand-dark mb-1">Revenue (₹ Cr)</label>
+                    <label className="block text-[12px] font-medium text-neutral-700 mb-1">Revenue (₹ Cr)</label>
                     <input type="number" value={form.annual_revenue} onChange={f('annual_revenue')}
-                      placeholder="Optional"
-                      className="w-full border border-bg-secondary rounded px-3 py-2 text-sm focus:outline-none focus:border-brand-purple" />
+                      placeholder="Optional" className="input input-lg" />
                   </div>
                 </motion.div>
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-brand-dark mb-1">Notes</label>
+                <label className="block text-[12px] font-medium text-neutral-700 mb-1">Notes</label>
                 <textarea value={form.notes} onChange={f('notes')} rows={2}
-                  placeholder="Any additional context..."
-                  className="w-full border border-bg-secondary rounded px-3 py-2 text-sm focus:outline-none focus:border-brand-purple resize-none" />
+                  placeholder="Any additional context…"
+                  className="input input-lg resize-none py-2" style={{ height: 'auto', minHeight: 64 }} />
               </div>
             </div>
           </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <div className="acc-card">
-            <h2 className="text-base font-bold text-brand-dark mb-4">Select Assessment Skill</h2>
+            <h2 className="text-[15px] font-semibold text-neutral-900 mb-4">Select assessment skill</h2>
             {skills.length === 0 ? (
-              <p className="text-caption text-sm">Loading skills…</p>
+              <p className="text-[13px] text-neutral-500">Loading skills…</p>
             ) : (
-              <div className="space-y-3">
-                {skills.map((skill) => (
-                  <button key={skill.path} onClick={() => setSelectedSkill(skill)}
-                    className={cn(
-                      'w-full text-left p-4 rounded border-2 transition-all',
-                      selectedSkill?.path === skill.path
-                        ? 'border-brand-purple bg-bg-secondary'
-                        : 'border-bg-secondary hover:border-brand-mid'
-                    )}>
-                    <div className="flex items-start gap-3">
-                      <div className={cn('p-2 rounded', selectedSkill?.path === skill.path ? 'bg-brand-purple text-white' : 'bg-bg-secondary text-brand-dark')}>
-                        {skill.is_procurement ? <BarChart3 size={18} /> : <TrendingUp size={18} />}
+              <div className="space-y-2">
+                {skills.map((skill) => {
+                  const isSelected = selectedSkill?.path === skill.path
+                  return (
+                    <button key={skill.path} onClick={() => setSelectedSkill(skill)}
+                      className={cn(
+                        'w-full text-left p-3 rounded-sm border transition-colors',
+                        isSelected
+                          ? 'border-accent bg-accent-50'
+                          : 'border-neutral-200 hover:border-neutral-300 bg-white'
+                      )}>
+                      <div className="flex items-start gap-3">
+                        <div className={cn(
+                          'p-2 rounded-sm flex-shrink-0',
+                          isSelected ? 'bg-accent text-white' : 'bg-neutral-100 text-neutral-700'
+                        )}>
+                          {skill.is_procurement ? <BarChart3 size={16} /> : <TrendingUp size={16} />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[14px] text-neutral-900">{skill.display_name}</p>
+                          <p className="text-[12px] text-neutral-500 mt-0.5">
+                            <span className="num">{skill.dimension_count}</span> dimensions
+                            <span className="mx-1.5 text-neutral-300">·</span>
+                            v<span className="num">{skill.schema_version}</span>
+                            {skill.is_procurement && (
+                              <>
+                                <span className="mx-1.5 text-neutral-300">·</span>
+                                8-KPI model
+                              </>
+                            )}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-sm text-black">{skill.display_name}</p>
-                        <p className="text-xs text-caption mt-0.5">
-                          {skill.dimension_count} dimensions · v{skill.schema_version}
-                          {skill.is_procurement && ' · 8-KPI Model'}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
         </motion.div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="mt-6 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <a
             href="/api/v1/templates/qre"
-            download="Accenture_Assessment_Client_Pack.xlsx"
-            className="flex items-center gap-2 border-2 border-brand-purple text-brand-purple px-4 py-2.5 rounded font-semibold text-sm hover:bg-brand-purple hover:text-white transition-colors"
+            download="AIVault_Assessment_Client_Pack.xlsx"
+            className="btn btn-sec btn-lg"
           >
-            <Download size={15} />
-            Download Client Data Pack
+            <Download size={14} />
+            Download client data pack
           </a>
           <a
             href="/api/v1/templates/synthetic"
-            download="Accenture_Assessment_Synthetic_Test_Data.xlsx"
-            className="flex items-center gap-2 border border-brand-mid text-brand-dark px-4 py-2.5 rounded font-semibold text-sm hover:bg-bg-secondary transition-colors"
+            download="AIVault_Assessment_Synthetic_Test_Data.xlsx"
+            className="btn btn-ghost btn-lg"
           >
-            <Download size={15} />
-            Download Test Data
+            <Download size={14} />
+            Download test data
           </a>
-          <span className="text-xs text-caption">Client pack to send to client · Test data to verify the app</span>
+          <span className="text-[12px] text-neutral-500">Client pack to send · Test data to verify the app</span>
         </div>
 
-        <button onClick={handleNext} disabled={loading}
-          className="flex items-center gap-2 bg-brand-purple text-white px-6 py-2.5 rounded font-semibold text-sm hover:bg-brand-dark transition-colors disabled:opacity-60">
-          {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-          Next: Upload Data <ChevronRight size={16} />
+        <button onClick={handleNext} disabled={loading} className="btn btn-pri btn-lg">
+          {loading && <Loader2 size={14} className="animate-spin" />}
+          Next: Upload data <ChevronRight size={14} />
         </button>
       </div>
     </div>

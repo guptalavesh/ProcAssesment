@@ -28,9 +28,9 @@ const INTERVENTIONS: {
   border: string
   lightBg: string
 }[] = [
-  { key: 'op_model',   label: 'Operating Model',   Icon: Building2,    text: 'text-brand-purple', border: 'border-brand-purple/30', lightBg: 'bg-purple-50' },
-  { key: 'process',    label: 'Process',           Icon: GitBranch,    text: 'text-brand-purple', border: 'border-brand-purple/30', lightBg: 'bg-purple-50' },
-  { key: 'category',   label: 'Category Strategy', Icon: DollarSign,   text: 'text-brand-purple', border: 'border-brand-purple/30', lightBg: 'bg-purple-50' },
+  { key: 'op_model',   label: 'Operating Model',   Icon: Building2,    text: 'text-brand-purple', border: 'border-brand-purple/30', lightBg: 'bg-accent-50' },
+  { key: 'process',    label: 'Process',           Icon: GitBranch,    text: 'text-brand-purple', border: 'border-brand-purple/30', lightBg: 'bg-accent-50' },
+  { key: 'category',   label: 'Category Strategy', Icon: DollarSign,   text: 'text-brand-purple', border: 'border-brand-purple/30', lightBg: 'bg-accent-50' },
   { key: 'tech',       label: 'Tech & AI',         Icon: Cpu,          text: 'text-brand-dark/80', border: 'border-brand-dark/20', lightBg: 'bg-bg-secondary/60' },
   { key: 'srm',        label: 'SRM',               Icon: Users2,       text: 'text-brand-dark/80', border: 'border-brand-dark/20', lightBg: 'bg-bg-secondary/60' },
   { key: 'capability', label: 'Capability',        Icon: GraduationCap, text: 'text-brand-dark/80', border: 'border-brand-dark/20', lightBg: 'bg-bg-secondary/60' },
