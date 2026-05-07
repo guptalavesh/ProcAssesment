@@ -19,7 +19,15 @@ Gemini-grounded transformation recommendations.
 
 ## Quick start
 
-### 1. Connect to Google Cloud / Vertex AI (free tier)
+### Run from GitHub — no local install required
+
+See **[docs/SETUP_FROM_GITHUB.md](docs/SETUP_FROM_GITHUB.md)** for three browser-only paths:
+
+- **GitHub Codespaces** — full VS Code in your browser, `gcloud` preinstalled
+- **Google Cloud Shell** — zero-config, `gcloud` already authenticated
+- **GitHub Actions → Cloud Run** — auto-deploy to a live URL with Workload Identity Federation (no keys)
+
+### Local install — connect to Google Cloud / Vertex AI
 
 ```bash
 bash scripts/setup_gcp.sh

@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Build the app and deploy it to Google Cloud Run.
+# Uses Workload Identity Federation — no service-account JSON keys needed.
+#
+# One-time GCP setup (run in Cloud Shell — see docs/SETUP_FROM_GITHUB.md):
+#   1. Create a workload identity pool + provider for github.com
+#   2. Create a service account with roles: aiplatform.user, run.admin,
+#      artifactregistry.writer, storage.admin
+#   3. Bind the GitHub repo to the service account via workloadIdentityUser
+#   4. Add three GitHub repository secrets:
+#        - GCP_PROJECT_ID
+#        - GCP_WORKLOAD_IDENTITY_PROVIDER
+#        - GCP_SERVICE_ACCOUNT
+# ─────────────────────────────────────────────────────────────────────────
+
+name: Deploy to Cloud Run
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write   # Required for Workload Identity Federation
+  contents: read
+
+env:
+  REGION: us-central1
+  SERVICE: procassesment
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (no keys)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build & deploy backend image
+        run: |
+          gcloud builds submit \
+            --tag "${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/app/${SERVICE}:${GITHUB_SHA}" \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
+
+          gcloud run deploy "$SERVICE" \
+            --image "${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/app/${SERVICE}:${GITHUB_SHA}" \
+            --region "$REGION" \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "GEMINI_VERTEX_PROJECT=${{ secrets.GCP_PROJECT_ID }},GEMINI_VERTEX_LOCATION=${REGION}" \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
