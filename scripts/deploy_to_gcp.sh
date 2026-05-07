@@ -236,9 +236,13 @@ EOF
     fi
   fi
 
-  # Build the frontend
-  echo "→ Building frontend (vite)…"
-  ( cd frontend && npm install --no-audit --no-fund >/dev/null 2>&1 && npm run build >/dev/null )
+  # Build the frontend (let npm/vite output through — long-running steps need
+  # visible progress so an interactive password prompt or stuck install is
+  # actually noticeable).
+  echo "→ Installing frontend deps (first run is ~1-2 min)…"
+  ( cd frontend && npm install --no-audit --no-fund --prefer-offline )
+  echo "→ Building frontend bundle (vite)…"
+  ( cd frontend && npm run build )
   echo "✓ Frontend built → frontend/dist"
 
   # Deploy
