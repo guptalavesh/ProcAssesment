@@ -176,15 +176,45 @@ ProcAssesment/
 6. **Formula Review** — override benchmarks / multipliers / calculation parameters
 7. **Results** — overall score, dimension breakdown, KPI dashboard, root-cause, AI insights, organogram, PPT / Excel export
 
+## Sample data
+
+`sample_data/` ships a deterministic, story-driven SAP fixture (600 POs / 720
+PRs / 510 invoices / 45 FTE workforce, ~₹500 Cr annual spend, calibrated for
+metals-and-mining). Drop the four xlsx files into the matching upload slots
+and the wizard lands at ~1.85 (Intermediate) overall with rate-contract
+coverage and spend-per-FTE as the headline gaps.
+
+To regenerate: `python sample_data/generate_sample_data.py` (seeded).
+
+## Verifying a deploy
+
+After `bash scripts/deploy_to_gcp.sh`:
+
+```bash
+# Quick smoke
+curl -sS https://<project>.web.app/health
+curl -sS https://<project>.web.app/api/v1/skills
+
+# Full end-to-end (40 checks across wizard + AI + exports)
+BASE=https://<project>.web.app/api/v1 python scripts/smoke_test.py
+```
+
+The harness exits non-zero on any failure — fine to wire into CI.
+
 ## Caveats
 
 - The KPI engine and scorer here are **pragmatic stubs** designed to drive the
-  full UI flow on real or synthetic SAP data. They are not the production
-  Accenture engine — KPI definitions, benchmark values and scoring thresholds
-  are reasonable approximations that can be replaced by dropping the real
-  v1 engine into `engine/` (the import surface is documented in each module).
+  full UI flow on real or synthetic SAP data. They are not a production
+  reference model — KPI definitions, benchmark values and scoring thresholds
+  are reasonable approximations that can be replaced by dropping a richer
+  engine into `engine/` (the import surface is documented in each module).
 - Sessions are in-memory (`backend/session_store.py`). For multi-replica
   deployments, swap to Firestore.
+- AI insights run on Vertex AI Gemini when the runtime service account is
+  bound to `roles/aiplatform.user` (the deploy script does this). When Vertex
+  is unreachable the routes fall through to a rule-based engine that mines
+  the session's KPI / dimension data and produces the same per-context shape
+  the React renderer expects — so the AI tab is never blank.
 
 ## License
 
