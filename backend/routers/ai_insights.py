@@ -138,30 +138,83 @@ JSON SCHEMA:
 
 
 def _build_tab_prompt(sess, context_name: str) -> str:
-    """3 context variants: kpi_overview, rca, offerings."""
+    """3 context variants: kpi_overview, rca, offerings.
+
+    The output JSON shape MUST match what `frontend/src/components/results/
+    AiInsightsMini.tsx` renders, otherwise the AI panel renders blank.
+    """
     base_context = _build_rich_context(sess)
     if context_name == "kpi_overview":
-        focus = "Focus on KPI scorecard interpretation. Explain top 3 KPIs (good and bad) in business terms."
-    elif context_name == "rca":
-        focus = "Focus on root-cause analysis. For the worst-performing KPIs, hypothesise root causes from data patterns."
-    elif context_name == "offerings":
-        focus = "Focus on Accenture transformation offerings. Match gaps to Accenture's procurement service portfolio (sourcing-as-a-service, P2P automation, category strategy refresh, supplier risk mgmt)."
-    else:
-        focus = ""
-    return f"""You are an Accenture procurement consultant.
+        return f"""You are a procurement consultant analysing this maturity assessment.
 
-CONTEXT:
+DATA CONTEXT:
 {base_context}
 
-{focus}
+Pick the 2–3 best-performing KPIs (top performers) and the 2–3 worst (urgent gaps).
+For each gap, write a one-sentence root cause inferred from the data and a one-
+sentence concrete fix. Add 3–4 30-day priorities that are specific verbs (e.g.
+"Roll out catalog buying for top-20 indirect categories"), not generic advice.
 
-OUTPUT STRICT JSON:
+OUTPUT STRICT JSON, no markdown, no commentary outside the JSON:
 {{
-  "summary": "2-3 sentences",
-  "key_points": ["bullet 1","bullet 2","bullet 3"],
-  "recommendations": ["specific action 1","action 2"]
+  "headline": "1-2 sentence executive overview of KPI scorecard state",
+  "top_performers": [
+    {{"kpi": "PR-to-PO TAT", "insight": "9 days vs benchmark 9d — at par"}}
+  ],
+  "urgent_gaps": [
+    {{"kpi": "RC adoption (volume)", "root_cause": "...", "fix": "..."}}
+  ],
+  "30_day_priorities": ["action 1", "action 2", "action 3"],
+  "source": "vertex-gemini"
 }}
 """
+    if context_name == "rca":
+        return f"""You are a procurement consultant doing root-cause analysis.
+
+DATA CONTEXT:
+{base_context}
+
+For the lowest-scoring KPIs, hypothesise data-grounded root causes.
+Each root_cause has: issue (1 line), evidence (numeric or pattern from the
+data), intervention (concrete action), urgency ("High"/"Medium"/"Low" —
+High when the KPI score is < 2 OR gap exceeds 30%).
+
+OUTPUT STRICT JSON, no markdown:
+{{
+  "rca_summary": "2-3 sentence narrative tying root causes together",
+  "root_causes": [
+    {{"issue": "...", "evidence": "...", "intervention": "...", "urgency": "High"}}
+  ],
+  "intervention_priority": [
+    {{"area": "...", "rationale": "...", "expected_impact": "e.g. RC coverage +20pp in 6 months"}}
+  ],
+  "source": "vertex-gemini"
+}}
+"""
+    if context_name == "offerings":
+        return f"""You are a procurement transformation lead matching gaps to offerings.
+
+DATA CONTEXT:
+{base_context}
+
+Recommend 3–5 transformation offerings drawn from this catalogue
+(operating-model design, P2P automation, sourcing-as-a-service, category
+strategy refresh, supplier risk management, spend analytics, contract
+lifecycle management). Rank them with priority 1 (highest) to N. For each,
+list the KPI ids it lifts (kpi_links), and the expected business benefit.
+
+OUTPUT STRICT JSON, no markdown:
+{{
+  "recommendation_summary": "2-3 sentences explaining why these offerings",
+  "top_offerings": [
+    {{"offering": "...", "priority": 1, "rationale": "...",
+      "kpi_links": ["RC adoption (volume)", "Tail spend"], "expected_benefit": "..."}}
+  ],
+  "quick_start": "1-sentence first move to capture momentum",
+  "source": "vertex-gemini"
+}}
+"""
+    return f"""You are a procurement consultant. Context:\n{base_context}\nReturn STRICT JSON with 'summary', 'key_points', 'recommendations'."""
 
 
 def _g(o, k, default=None):
@@ -330,35 +383,176 @@ _ACTIONS_BY_KPI: Dict[str, str] = {
 }
 
 
+_ROOT_CAUSES_BY_KPI: Dict[str, Dict[str, str]] = {
+    "tat_pr_to_po": {
+        "issue":        "Slow PR-to-PO turnaround",
+        "intervention": "Roll out catalog buying + auto-approval thresholds for the top 20 indirect categories.",
+    },
+    "rc_adoption_volume": {
+        "issue":        "Low rate-contract coverage",
+        "intervention": "CFO-sponsored compliance gate that routes top-spend categories through RC by default.",
+    },
+    "otd": {
+        "issue":        "Suppliers missing delivery dates",
+        "intervention": "Strategic-supplier scorecards with monthly OTD reviews and joint recovery plans.",
+    },
+    "savings_per_lpo": {
+        "issue":        "Negotiated savings leak at PO creation",
+        "intervention": "Re-baseline LPO references and validate savings via finance at PO commit.",
+    },
+    "pac_3way_match": {
+        "issue":        "3-way match exceptions",
+        "intervention": "Enforce systemic 3-way match with exception SLAs and weekly clearance review.",
+    },
+    "emergency_pr_pct": {
+        "issue":        "High emergency-PR rate",
+        "intervention": "Demand forecasting + safety-stock review for the top 5 emergency-driver categories.",
+    },
+    "tail_spend": {
+        "issue":        "Long tail of low-spend vendors",
+        "intervention": "Consolidate the tail; target 80/20 to top 50 suppliers via sourcing-as-a-service.",
+    },
+    "spend_per_fte": {
+        "issue":        "Procurement leverage below benchmark",
+        "intervention": "Scale shared services + automation; target touchless-PO rate of 60%+.",
+    },
+}
+
+
+_OFFERINGS_CATALOGUE = [
+    {"offering": "Operating-model and organisation redesign",
+     "kpi_links": ["spend_per_fte", "tat_pr_to_po"],
+     "rationale": "Reshape the procurement org to lift productivity and accountability.",
+     "expected_benefit": "Spend/FTE +20% in 12 months."},
+    {"offering": "Sourcing-as-a-service for tail spend",
+     "kpi_links": ["tail_spend", "rc_adoption_volume"],
+     "rationale": "Externalise tail-vendor management to consolidate vendors and fund category programmes.",
+     "expected_benefit": "Tail spend -10pp in 9 months."},
+    {"offering": "P2P automation and 3-way match enforcement",
+     "kpi_links": ["pac_3way_match", "tat_pr_to_po"],
+     "rationale": "Push touchless POs and tighten match controls to cut TAT and exceptions.",
+     "expected_benefit": "Touchless-PO rate to 60%+, TAT down 30%."},
+    {"offering": "Category strategy refresh",
+     "kpi_links": ["rc_adoption_volume", "savings_per_lpo"],
+     "rationale": "Reset top-spend categories with rate contracts and demand consolidation.",
+     "expected_benefit": "RC coverage +20pp, 4-6% category savings."},
+    {"offering": "Supplier-risk and performance management",
+     "kpi_links": ["otd"],
+     "rationale": "Tier suppliers, scorecard the strategic ones, and run joint OTD recovery.",
+     "expected_benefit": "OTD +5pp; supply disruptions down 30%."},
+    {"offering": "Spend analytics + AI insights platform",
+     "kpi_links": ["tail_spend", "spend_per_fte"],
+     "rationale": "Foundational visibility — without it, every other lever is half-blind.",
+     "expected_benefit": "Decision lead time cut by 50%."},
+]
+
+
+def _urgency(score) -> str:
+    if score is None: return "Low"
+    return "High" if score < 2 else "Medium" if score < 3 else "Low"
+
+
 def _tab_rule_based_fallback(sess, context_name: str) -> Dict[str, Any]:
-    """Per-tab fallback that pulls the same data view as the LLM prompt."""
+    """Per-tab fallback that pulls the same data view as the LLM prompt and
+    returns the exact shape AiInsightsMini renders."""
     main = _rule_based_fallback(sess)
+    ka = sess.get("kpi_assessment")
+    kpi_results = _g(ka, "kpi_results") or {}
+    kpis_sorted = sorted(
+        ((kid, kr) for kid, kr in kpi_results.items() if _g(kr, "available", True)),
+        key=lambda p: (_g(p[1], "score", 5), -float(_g(p[1], "weight", 0) or 0)),
+    )
+
     if context_name == "kpi_overview":
+        top = []
+        for kid, kr in reversed(kpis_sorted):
+            score = _g(kr, "score", 0)
+            if score and score >= 3:
+                top.append({
+                    "kpi":     _g(kr, "label", kid),
+                    "insight": f"{_fmt_kpi_value(kr)} vs benchmark {_format_benchmark(kr)} — {_g(kr, 'score_label', '')}.",
+                })
+            if len(top) == 3:
+                break
+        urgent = []
+        for kid, kr in kpis_sorted[:3]:
+            score = _g(kr, "score", 0)
+            if score and score < 2.5:
+                urgent.append({
+                    "kpi":        _g(kr, "label", kid),
+                    "root_cause": f"Actual {_fmt_kpi_value(kr)} vs benchmark {_format_benchmark(kr)}.",
+                    "fix":        _ACTIONS_BY_KPI.get(kid, "Build a 90-day action plan."),
+                })
         return {
-            "summary":         main["summary"],
-            "key_points":      main["strengths"][:3] + main["gaps"][:3],
-            "recommendations": main["priorities"][:3],
-            "_engine":         "rule-based",
+            "headline":          main["summary"],
+            "top_performers":    top or [{"kpi": "—", "insight": "No KPI scoring above 3 yet — focus on the gaps."}],
+            "urgent_gaps":       urgent,
+            "30_day_priorities": main["priorities"][:4],
+            "source":            "rule-based",
         }
+
     if context_name == "rca":
+        causes = []
+        for kid, kr in kpis_sorted[:5]:
+            score = _g(kr, "score", 0)
+            if score is None or score >= 3:
+                continue
+            template = _ROOT_CAUSES_BY_KPI.get(kid, {})
+            causes.append({
+                "issue":        template.get("issue", _g(kr, "label", kid)),
+                "evidence":     f"{_g(kr, 'label', kid)} at {_fmt_kpi_value(kr)} vs benchmark {_format_benchmark(kr)}.",
+                "intervention": template.get("intervention", _ACTIONS_BY_KPI.get(kid, "Review with category lead.")),
+                "urgency":      _urgency(score),
+            })
+        priorities = []
+        for kid, kr in kpis_sorted[:3]:
+            score = _g(kr, "score", 0)
+            if score is None or score >= 3:
+                continue
+            priorities.append({
+                "area":            _g(kr, "label", kid),
+                "rationale":       _ACTIONS_BY_KPI.get(kid, "Largest gap to benchmark in this bucket."),
+                "expected_impact": "Move from " + (_g(kr, "score_label") or "Foundation") + " toward Advanced in 6–9 months.",
+            })
         return {
-            "summary":         "Root-cause analysis from the lowest-scoring KPIs and their data signatures.",
-            "key_points":      main["gaps"][:5],
-            "recommendations": [a for a in main["priorities"] if a],
-            "_engine":         "rule-based",
+            "rca_summary":         "Lowest-scoring KPIs cluster around rate-contract coverage and tail-vendor sprawl. "
+                                   "Each root cause below is grounded in the actual numbers from this assessment.",
+            "root_causes":         causes,
+            "intervention_priority": priorities,
+            "source":              "rule-based",
         }
+
     if context_name == "offerings":
+        # Score each offering by how many of its KPI links are in the top gaps
+        gap_kids = {kid for kid, kr in kpis_sorted[:5] if (_g(kr, "score", 5) or 5) < 3}
+        scored = []
+        for off in _OFFERINGS_CATALOGUE:
+            relevant = sum(1 for k in off["kpi_links"] if k in gap_kids)
+            scored.append((relevant, off))
+        scored.sort(key=lambda p: -p[0])
+        top_offs = []
+        for prio, (_relevance, off) in enumerate(scored[:5], start=1):
+            top_offs.append({
+                "offering":         off["offering"],
+                "priority":         prio,
+                "rationale":        off["rationale"],
+                "kpi_links":        [_g(kpi_results.get(k), "label", k) for k in off["kpi_links"]],
+                "expected_benefit": off["expected_benefit"],
+            })
         return {
-            "summary":         "Recommended offerings mapped to the biggest gaps in this assessment.",
-            "key_points":      [c["title"] for c in (main.get("insight_cards") or []) if c.get("severity") in ("high", "medium")][:5],
-            "recommendations": main["priorities"][:4],
-            "_engine":         "rule-based",
+            "recommendation_summary": "These offerings are sequenced to attack the largest gaps first while building the "
+                                      "data backbone needed to sustain improvements.",
+            "top_offerings":          top_offs,
+            "quick_start":            "Stand up a 90-day RC expansion sprint on the top 3 spend categories — fastest visible impact.",
+            "source":                 "rule-based",
         }
+
     return {
-        "summary":         main["summary"],
-        "key_points":      main["strengths"] + main["gaps"],
-        "recommendations": main["priorities"],
-        "_engine":         "rule-based",
+        "headline":          main["summary"],
+        "top_performers":    [],
+        "urgent_gaps":       [],
+        "30_day_priorities": main["priorities"],
+        "source":            "rule-based",
     }
 
 
@@ -410,6 +604,10 @@ def generate_tab_insights(session_id: str, payload: AiTabPayload):
     if raw:
         try:
             data = json.loads(raw)
+            # Defensive: tag source even if Gemini omitted it. The frontend
+            # uses `data.source === "vertex-gemini"` to decide between the
+            # "Gemini · grounded" chip and the "Rule-based" chip.
+            data.setdefault("source", "vertex-gemini")
         except Exception:
             data = _tab_rule_based_fallback(sess, payload.context)
     else:

@@ -186,12 +186,24 @@ record("ai priorities",   len(ai.get("priorities") or []) > 0)
 record("ai cards",        len(ai.get("insight_cards") or []) > 0)
 print(f"      summary: {(ai.get('summary') or '')[:140]}")
 
-# ── 14. Tab insights × 3
-step("14. Tab insights")
+# ── 14. Tab insights × 3 — verify the per-context shape AiInsightsMini renders
+step("14. Tab insights (per-context shape)")
+def _check_shape(ctx, j) -> tuple[bool, str]:
+    if ctx == "kpi_overview":
+        ok = bool(j.get("headline")) and isinstance(j.get("urgent_gaps"), list)
+        return ok, f"headline+{len(j.get('urgent_gaps') or [])} gaps+{len(j.get('top_performers') or [])} top"
+    if ctx == "rca":
+        ok = bool(j.get("rca_summary")) and isinstance(j.get("root_causes"), list)
+        return ok, f"rca_summary+{len(j.get('root_causes') or [])} causes"
+    if ctx == "offerings":
+        ok = bool(j.get("recommendation_summary")) and isinstance(j.get("top_offerings"), list)
+        return ok, f"summary+{len(j.get('top_offerings') or [])} offerings"
+    return False, "unknown context"
 for ctx in ("kpi_overview", "rca", "offerings"):
     j = post(f"/session/{sid}/results/ai-tab-insights",
              json={"context": ctx, "force_refresh": True}).json()
-    record(f"tab {ctx}", bool(j.get("summary")) and len(j.get("recommendations") or []) > 0)
+    ok, detail = _check_shape(ctx, j)
+    record(f"tab {ctx} shape", ok, f"source={j.get('source')} · {detail}")
 
 # ── 15. Buying categories
 step("15. Buying categories")
