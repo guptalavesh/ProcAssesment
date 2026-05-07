@@ -19,7 +19,7 @@ Gemini-grounded transformation recommendations.
 
 ## Quick start
 
-### Deploy the whole app to Google Cloud (one command, $300 free credit)
+### Deploy to Google Cloud (no VM, fully managed)
 
 ```bash
 # In Google Cloud Shell (https://shell.cloud.google.com)
@@ -28,8 +28,12 @@ cd ProcAssesment
 bash scripts/deploy_to_gcp.sh
 ```
 
-You get a live HTTPS URL on Cloud Run (~3-5 min first run). Full architecture, cost
-breakdown, and overrides in **[docs/DEPLOY_TO_GCP.md](docs/DEPLOY_TO_GCP.md)**.
+Architecture: **Firebase Hosting** (CDN) for the React build + **Cloud Run**
+(serverless containers, scales to zero) for FastAPI. Both fully managed
+GCP services — no VMs, no SSH, no servers to patch. Firebase Hosting
+rewrites `/api/**` to Cloud Run so the browser sees one URL.
+
+Full breakdown and cost estimates in **[docs/DEPLOY_TO_GCP.md](docs/DEPLOY_TO_GCP.md)**.
 
 ### Run from GitHub — no local install (development)
 

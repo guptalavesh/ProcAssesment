@@ -30,3 +30,8 @@ backend/outputs/
 # Frontend
 frontend/dist/
 frontend/node_modules/
+
+# Firebase — .firebaserc is rewritten by the deploy script with the actual
+# project id, so we keep it in-tree for first-run discovery but ignore
+# subsequent edits. If you commit a different default, drop this rule.
+.firebase/
