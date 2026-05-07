@@ -172,10 +172,10 @@ export default function RCATab({ kpiAssessment, activeBucket }: Props) {
                               )
                             })}
                           </div>
-                          {openIntervention && row[openIntervention] && (
+                          {openIntervention && row[openIntervention as keyof RCARow] && (
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={cn('mt-2 p-2 rounded text-xs',
                               INTERVENTIONS.find(i => i.key === openIntervention)?.lightBg)}>
-                              {row[openIntervention]}
+                              {row[openIntervention as keyof RCARow]}
                             </motion.div>
                           )}
                           {row.benefit && (
