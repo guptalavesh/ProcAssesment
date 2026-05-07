@@ -4,11 +4,61 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
 
+# ── Standard SAP/procurement column aliases ──────────────────────────────────
+# Logical name → list of common header variants. The column resolver uses
+# these synonyms (and falls back to fuzzy matching) to map uploaded files.
+COLUMN_ALIASES: Dict[str, List[str]] = {
+    # PO
+    "po_number":        ["PO_Number", "Purchase_Order", "Doc_No", "PO No", "Purchasing Document"],
+    "po_date":          ["PO_Creation_Date", "PO_Date", "Document_Date", "Posting_Date", "PO Doc Date"],
+    "vendor":           ["Vendor", "Vendor_Code", "Supplier", "Supplier_Code", "Vendor No"],
+    "vendor_name":      ["Vendor_Name", "Supplier_Name", "Name_1"],
+    "material_number":  ["Material_Number", "Material", "Item_No", "Part_No", "SKU"],
+    "short_text":       ["Short_Text", "Material_Description", "Item_Text", "Description"],
+    "quantity":         ["Quantity", "Order_Quantity", "PO_Qty", "Qty"],
+    "net_value":        ["Net_Value", "PO_Value", "Total_Value", "Order_Value", "Net_Amount", "Amount"],
+    "net_price":        ["Net_Price", "Unit_Price", "Price_Per_Unit", "Unit Cost"],
+    "plant":            ["Plant", "Plant_Code"],
+    "purchase_group":   ["Purchase_Group", "Purchasing_Group", "Purch_Group", "PGr"],
+    "material_group":   ["Material_Group", "Material_Grp", "MatGrp", "Mat_Group"],
+    "material_group_desc": ["Material_Group_Desc", "MatGrp_Desc", "Material_Group_Description"],
+    "outline_agreement":["Outline_Agreement", "Framework_Order", "Value_Contract"],
+    "contract_number":  ["Contract_Number", "Contract_No", "Agmt_No"],
+    "gr_date":          ["GR_Date", "Goods_Receipt_Date", "Entry_Date", "MIGO_Date"],
+    "pr_delivery_date": ["Delivery_Date", "Sched_Del_Date", "Requested_Delivery_Date"],
+    "pr_reference":     ["PR_Reference", "PR_Ref", "Requisition_No", "Purch_Req"],
+    "po_type":          ["Document_Type", "Order_Type", "PO_Type"],
+    "cost_center":      ["Cost_Center", "WBS_Element", "Account_Assignment"],
+    "gl_account":       ["GL_Account", "G_L_Account", "Account"],
+    # PR-owned (same logical names but expected on PR file)
+    "pr_number":        ["PR_Number", "PR_No", "Purchase_Requisition", "Requisition_No"],
+    "pr_date":          ["PR_Creation_Date", "PR_Date", "Requisition_Date", "Created_On"],
+    "pr_creation_date": ["PR_Creation_Date", "PR_Date", "Requisition_Date", "Created_On"],
+    "pr_release_date":  ["PR_Release_Date", "Release_Date", "Approval_Date"],
+    "pr_creator":       ["PR_Creator", "Created_By", "Requestor"],
+    "pr_item":          ["PR_Item", "Item", "Line_Item"],
+    # Invoice
+    "invoice_number":   ["Invoice_Number", "Invoice_No", "Document_Number"],
+    "invoice_date":     ["Invoice_Date", "Posting_Date"],
+    "invoice_amount":   ["Invoice_Amount", "Net_Amount", "Total"],
+    "payment_date":     ["Payment_Date", "Clearing_Date"],
+    "due_date":         ["Due_Date", "Baseline_Date"],
+    "payment_terms":    ["Payment_Terms", "Terms_of_Payment"],
+    # Workforce
+    "employee_id":      ["Employee_ID", "Emp_ID", "Personnel_No"],
+    "employee_name":    ["Name", "Employee_Name", "Full_Name"],
+    "role":             ["Role", "Job_Title", "Designation"],
+    "department":       ["Department", "Dept", "Function"],
+    "location":         ["Location", "Plant", "Site"],
+}
+
+
 @dataclass
 class Dimension:
     id: str
     name: str
     weight: float
+    kpis: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -17,24 +67,25 @@ class Skill:
     display_name: str
     function_name: str
     dimensions: Dict[str, Dimension]
+    column_aliases: Dict[str, List[str]] = field(default_factory=dict)
     schema_version: str = "1.0"
     raw_yaml: Dict[str, Any] = field(default_factory=dict)
 
 
 _DIMENSIONS: List[Dimension] = [
-    Dimension("D1",  "Strategy & Governance",        0.10),
-    Dimension("D2",  "Spend Visibility & Analytics", 0.08),
-    Dimension("D3",  "Category Management",          0.10),
-    Dimension("D4",  "Sourcing & Contracting",       0.10),
-    Dimension("D5",  "Supplier Management",          0.08),
-    Dimension("D6",  "Operational Procurement",      0.10),
-    Dimension("D7",  "Purchase-to-Pay Process",      0.08),
-    Dimension("D8",  "Risk & Compliance",            0.08),
-    Dimension("D9",  "Digital & Technology",         0.08),
-    Dimension("D10", "People & Organisation",        0.08),
-    Dimension("D11", "Sustainability",               0.06),
-    Dimension("D12", "Value Delivery",               0.08),
-    Dimension("D13", "Innovation",                   0.06),
+    Dimension("D1",  "Strategy & Governance",        0.10, kpis=[]),
+    Dimension("D2",  "Spend Visibility & Analytics", 0.08, kpis=["tail_spend", "spend_per_fte"]),
+    Dimension("D3",  "Category Management",          0.10, kpis=["rc_adoption_volume"]),
+    Dimension("D4",  "Sourcing & Contracting",       0.10, kpis=["rc_adoption_volume", "savings_per_lpo"]),
+    Dimension("D5",  "Supplier Management",          0.08, kpis=["otd"]),
+    Dimension("D6",  "Operational Procurement",      0.10, kpis=["tat_pr_to_po", "emergency_pr_pct"]),
+    Dimension("D7",  "Purchase-to-Pay Process",      0.08, kpis=["pac_3way_match"]),
+    Dimension("D8",  "Risk & Compliance",            0.08, kpis=["pac_3way_match", "emergency_pr_pct"]),
+    Dimension("D9",  "Digital & Technology",         0.08, kpis=[]),
+    Dimension("D10", "People & Organisation",        0.08, kpis=["spend_per_fte"]),
+    Dimension("D11", "Sustainability",               0.06, kpis=[]),
+    Dimension("D12", "Value Delivery",               0.08, kpis=["savings_per_lpo"]),
+    Dimension("D13", "Innovation",                   0.06, kpis=[]),
 ]
 
 _SCALE = [
@@ -195,6 +246,7 @@ def _build_skill(path: str, display_name: str, function_name: str) -> Skill:
         display_name=display_name,
         function_name=function_name,
         dimensions=dims,
+        column_aliases=COLUMN_ALIASES,
         schema_version="1.0",
         raw_yaml={"questionnaire": questionnaire},
     )
