@@ -84,6 +84,13 @@ def serialize_kpi_result(kr) -> Dict[str, Any]:
     benchmark = _clean(getattr(kr, "benchmark", None))
     direction = getattr(kr, "direction", "higher_is_better")
     unit = getattr(kr, "unit", "")
+    score = _clean(getattr(kr, "score", None))
+    available = getattr(kr, "available", True)
+    if actual is None:
+        # Engine sometimes assigns a "Foundation 1.0" floor even when there's
+        # no real measurement. From a UX perspective: no value = no score.
+        available = False
+        score = None
 
     # Format actual and benchmark for display
     def _fmt(v, u):
@@ -93,29 +100,45 @@ def serialize_kpi_result(kr) -> Dict[str, Any]:
         if u == "₹ Cr": return f"₹{round(v, 1)} Cr"
         return str(round(v, 2))
 
-    # Gap percentage
-    gap_pct = None
+    # Gap percentage as a *fraction* (positive = above benchmark for the
+    # KPI's preferred direction, negative = below). Frontend multiplies by
+    # 100 to render. Capped at ±9.99 (= ±999%) so a divide-by-tiny doesn't
+    # blow up the column width.
+    gap_pct: Optional[float] = None
     if actual is not None and benchmark is not None and benchmark != 0:
         if direction == "higher_is_better":
-            gap_pct = _clean((actual - benchmark) / abs(benchmark))
+            gap_pct = (actual - benchmark) / abs(benchmark)
         else:
-            gap_pct = _clean((benchmark - actual) / abs(benchmark))
+            gap_pct = (benchmark - actual) / abs(benchmark)
+        if gap_pct is not None:
+            gap_pct = max(-9.99, min(9.99, gap_pct))
+        gap_pct = _clean(gap_pct)
+
+    # has_gap: scoreboard / status pill in the frontend reads this. A KPI
+    # has a gap if it scored ≤ 2 (Foundation/Intermediate) or finished
+    # below benchmark on its preferred direction.
+    has_gap: Optional[bool] = None
+    if actual is not None and benchmark is not None:
+        below = (actual < benchmark) if direction == "higher_is_better" else (actual > benchmark)
+        score_weak = score is not None and score <= 2
+        has_gap = bool(below or score_weak)
 
     return {
         "kpi_id":    getattr(kr, "kpi_id", None),
         "label":     getattr(kr, "label", ""),
         "actual":    actual,
         "benchmark": benchmark,
-        "score":     _clean(getattr(kr, "score", None)),
+        "score":     score,
         "score_label": getattr(kr, "score_label", None),
         "direction": direction,
         "unit":      unit,
         "weight":    _clean(getattr(kr, "weight", None)),
         "bucket":    getattr(kr, "bucket", ""),
         "gap_pct":   gap_pct,
+        "has_gap":   has_gap,
         "formatted_actual":    _fmt(actual, unit),
         "formatted_benchmark": _fmt(benchmark, unit),
-        "available": getattr(kr, "available", True),
+        "available": available,
     }
 
 

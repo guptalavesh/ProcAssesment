@@ -40,18 +40,17 @@ function scoreBadgeClass(score: number | null): string {
   return 'bg-red-100 text-red-800'
 }
 
-function GapIndicator({ gapPct, direction }: { gapPct: number | null; direction: string }) {
+function GapIndicator({ gapPct }: { gapPct: number | null; direction?: string }) {
   if (gapPct === null || gapPct === undefined) return <span className="text-caption">—</span>
-  const raw = Math.abs(gapPct)
-  let absPct: number
-  if (raw > 5)         absPct = Math.min(raw, 999)
-  else if (raw <= 1.5) absPct = raw * 100
-  else                 absPct = raw
-  const isAbove = direction === 'higher_is_better' ? gapPct >= 0 : gapPct <= 0
+  // Backend returns gap_pct as a fraction whose SIGN already encodes
+  // direction: positive = above benchmark (good), negative = below (gap).
+  // Frontend just multiplies by 100 to render a percentage.
+  const isAbove = gapPct >= 0
+  const pct = Math.min(999, Math.abs(gapPct) * 100)
   const Icon = isAbove ? TrendingUp : TrendingDown
   return (
     <span className={cn('inline-flex items-center gap-1 text-xs font-semibold', isAbove ? 'text-green-600' : 'text-red-600')}>
-      <Icon size={11} /> {absPct.toFixed(0)}%
+      <Icon size={11} /> {isAbove ? '+' : '−'}{pct.toFixed(0)}%
     </span>
   )
 }
