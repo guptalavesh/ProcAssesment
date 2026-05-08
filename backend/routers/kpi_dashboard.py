@@ -73,6 +73,46 @@ def _monthly_trend(df, date_col, value_col, agg_fn="mean"):
     except Exception: return []
 
 
+def _percent_breakdown(po_df, group_col: str, flag_series, top_n: int = 10):
+    """Render `[{name, value, pct}]` rows: % of POs in `group_col` that match
+    `flag_series`. Sorted by group volume desc, capped at top_n. Used for the
+    by_plant / by_category / by_vendor breakdown panels on KPIs that compute
+    a ratio (RC adoption, single-source PRs, etc)."""
+    if group_col is None or group_col not in po_df.columns:
+        return []
+    try:
+        grouped = po_df.assign(_flag=flag_series.astype(int)).groupby(group_col).agg(
+            total=("_flag", "size"),
+            hits=("_flag", "sum"),
+        )
+        grouped = grouped[grouped["total"] >= 5].sort_values("total", ascending=False).head(top_n)
+        rows = []
+        for name, row in grouped.iterrows():
+            pct = round(float(row["hits"] / row["total"] * 100), 1) if row["total"] else 0.0
+            rows.append({"name": str(name), "value": pct, "pct": pct, "n": int(row["total"])})
+        return rows
+    except Exception:
+        return []
+
+
+def _value_breakdown(po_df, group_col: str, value_col: str, top_n: int = 10, to_cr: bool = True):
+    """Render `[{name, value, pct}]`: total spend per group, top_n only.
+    `pct` is share of overall total."""
+    if group_col is None or group_col not in po_df.columns or value_col is None or value_col not in po_df.columns:
+        return []
+    try:
+        nv = pd.to_numeric(po_df[value_col], errors="coerce").fillna(0)
+        grouped = po_df.assign(_nv=nv).groupby(group_col)["_nv"].sum().sort_values(ascending=False).head(top_n)
+        total = float(grouped.sum()) or 1.0
+        rows = []
+        for name, val in grouped.items():
+            display = round(float(val) / 1e7, 2) if to_cr else round(float(val), 2)
+            rows.append({"name": str(name), "value": display, "pct": round(float(val) / total * 100, 1)})
+        return rows
+    except Exception:
+        return []
+
+
 def _kpi_tat_pr_to_po(po_df, pr_df, col_map, params=None):
     """Compute PR-to-PO TAT (days). Returns KpiData dict."""
     import numpy as np
@@ -148,18 +188,30 @@ def _kpi_rc_adoption(po_df, col_map, params=None):
             nv = pd.to_numeric(po_df[nv_col], errors="coerce").fillna(0)
             total = nv.sum()
             if total > 0: rc_val_pct = round(float(nv[rc_flag].sum() / total * 100), 1)
+        plant_col    = _get_po_col(po_df, "plant",          col_map)
+        cat_col      = _get_po_col(po_df, "material_group", col_map)
+        vendor_col   = _get_po_col(po_df, "vendor",         col_map)
+        pg_col       = _get_po_col(po_df, "purchase_group", col_map)
         vol_kpi = {
             "id": "rc_adoption_volume", "label": "RC Adoption (Volume)",
             "available": True, "value": rc_vol_pct,
             "unit": "%", "benchmark": 65, "direction": "higher_is_better",
-            "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
+            "trend": [],
+            "by_plant":          _percent_breakdown(po_df, plant_col,  rc_flag),
+            "by_vendor":         _percent_breakdown(po_df, vendor_col, rc_flag),
+            "by_category":       _percent_breakdown(po_df, cat_col,    rc_flag),
+            "by_purchase_group": _percent_breakdown(po_df, pg_col,     rc_flag),
             "confidence": "high" if len(po_df) >= 50 else "medium",
         }
         val_kpi = {
             "id": "rc_adoption_value", "label": "RC Adoption (Value)",
             "available": rc_val_pct is not None, "value": rc_val_pct,
             "unit": "%", "benchmark": 60, "direction": "higher_is_better",
-            "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
+            "trend": [],
+            "by_plant":          _percent_breakdown(po_df, plant_col,  rc_flag),
+            "by_vendor":         _percent_breakdown(po_df, vendor_col, rc_flag),
+            "by_category":       _percent_breakdown(po_df, cat_col,    rc_flag),
+            "by_purchase_group": _percent_breakdown(po_df, pg_col,     rc_flag),
         }
         return (vol_kpi, val_kpi)
     except Exception as e:
