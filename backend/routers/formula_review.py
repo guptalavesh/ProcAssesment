@@ -11,8 +11,9 @@ router = APIRouter(tags=["formula_review"])
 
 # ── Default 8-KPI formula catalogue ───────────────────────────────────────────
 # NB: each entry here must include the keys the FormulaReviewPage expects:
-#     bucket, weight, formula, benchmark_unit, thresholds — the page derives
-#     the bucket grouping + threshold display directly from this payload.
+#     bucket, weight, formula, benchmark_unit, thresholds (text strings) and
+#     multipliers keyed score_4/3/2/1 (the page does `bench × m4` / `× m3`
+#     to render the threshold cut-offs).
 KPI_FORMULAS = {
     "tat_pr_to_po": {
         "label": "PR-to-PO TAT", "unit": "days", "bucket": "Efficiency", "weight": 0.15,
@@ -26,7 +27,7 @@ KPI_FORMULAS = {
             "intermediate": {"label": "Intermediate", "condition": "≤ 1.0 × benchmark"},
             "foundation":   {"label": "Foundation",   "condition": "> 1.5 × benchmark"},
         },
-        "multipliers": {"leading": 0.5, "advanced": 0.75, "intermediate": 1.0, "foundation": 1.5},
+        "multipliers": {"score_4": 0.5,  "score_3": 0.75, "score_2": 1.0,  "score_1": 1.5},
     },
     "rc_adoption_volume": {
         "label": "RC Adoption (Volume)", "unit": "%", "bucket": "Effectiveness", "weight": 0.18,
@@ -40,7 +41,7 @@ KPI_FORMULAS = {
             "intermediate": {"label": "Intermediate", "condition": "≥ 0.65 × benchmark"},
             "foundation":   {"label": "Foundation",   "condition": "< 0.40 × benchmark"},
         },
-        "multipliers": {"leading": 1.0, "advanced": 0.85, "intermediate": 0.65, "foundation": 0.40},
+        "multipliers": {"score_4": 1.0,  "score_3": 0.85, "score_2": 0.65, "score_1": 0.40},
     },
     "supplier_otd": {
         "label": "Supplier On-Time Delivery", "unit": "%", "bucket": "Vendor Management", "weight": 0.12,
@@ -54,7 +55,7 @@ KPI_FORMULAS = {
             "intermediate": {"label": "Intermediate", "condition": "≥ 0.80 × benchmark"},
             "foundation":   {"label": "Foundation",   "condition": "< 0.60 × benchmark"},
         },
-        "multipliers": {"leading": 1.0, "advanced": 0.92, "intermediate": 0.80, "foundation": 0.60},
+        "multipliers": {"score_4": 1.0,  "score_3": 0.92, "score_2": 0.80, "score_1": 0.60},
     },
     "savings_lpo": {
         "label": "Savings vs Last PO Price", "unit": "%", "bucket": "Effectiveness", "weight": 0.12,
@@ -68,7 +69,7 @@ KPI_FORMULAS = {
             "intermediate": {"label": "Intermediate", "condition": "≥ 0.5 × benchmark"},
             "foundation":   {"label": "Foundation",   "condition": "< 0.0 × benchmark"},
         },
-        "multipliers": {"leading": 1.5, "advanced": 1.0, "intermediate": 0.5, "foundation": 0.0},
+        "multipliers": {"score_4": 1.5,  "score_3": 1.0,  "score_2": 0.5,  "score_1": 0.0},
     },
     "spend_per_fte": {
         "label": "Spend per FTE", "unit": "₹ Cr", "bucket": "Effectiveness", "weight": 0.10,
@@ -82,7 +83,7 @@ KPI_FORMULAS = {
             "intermediate": {"label": "Intermediate", "condition": "≥ 0.8 × benchmark"},
             "foundation":   {"label": "Foundation",   "condition": "< 0.4 × benchmark"},
         },
-        "multipliers": {"leading": 2.0, "advanced": 1.3, "intermediate": 0.8, "foundation": 0.4},
+        "multipliers": {"score_4": 2.0,  "score_3": 1.3,  "score_2": 0.8,  "score_1": 0.4},
     },
     "emergency_prs": {
         "label": "Emergency PRs", "unit": "%", "bucket": "Risk", "weight": 0.10,
@@ -96,7 +97,7 @@ KPI_FORMULAS = {
             "intermediate": {"label": "Intermediate", "condition": "≤ 1.0 × benchmark"},
             "foundation":   {"label": "Foundation",   "condition": "> 2.0 × benchmark"},
         },
-        "multipliers": {"leading": 0.5, "advanced": 0.7, "intermediate": 1.0, "foundation": 2.0},
+        "multipliers": {"score_4": 0.5,  "score_3": 0.7,  "score_2": 1.0,  "score_1": 2.0},
     },
     "tail_spend_pct": {
         "label": "Tail Spend %", "unit": "%", "bucket": "Effectiveness", "weight": 0.08,
@@ -110,7 +111,7 @@ KPI_FORMULAS = {
             "intermediate": {"label": "Intermediate", "condition": "≤ 1.0 × benchmark"},
             "foundation":   {"label": "Foundation",   "condition": "> 1.5 × benchmark"},
         },
-        "multipliers": {"leading": 0.5, "advanced": 0.75, "intermediate": 1.0, "foundation": 1.5},
+        "multipliers": {"score_4": 0.5,  "score_3": 0.75, "score_2": 1.0,  "score_1": 1.5},
     },
     "pac_prs": {
         "label": "Single-Source / PAC PRs", "unit": "%", "bucket": "Risk", "weight": 0.10,
@@ -124,7 +125,7 @@ KPI_FORMULAS = {
             "intermediate": {"label": "Intermediate", "condition": "≤ 1.0 × benchmark"},
             "foundation":   {"label": "Foundation",   "condition": "> 2.0 × benchmark"},
         },
-        "multipliers": {"leading": 0.3, "advanced": 0.7, "intermediate": 1.0, "foundation": 2.0},
+        "multipliers": {"score_4": 0.3,  "score_3": 0.7,  "score_2": 1.0,  "score_1": 2.0},
     },
 }
 
@@ -137,10 +138,49 @@ SCORE_COLORS: Dict[str, str] = {
     "1": "#D92D20", "2": "#DC6803", "3": "#1570EF", "4": "#039855",
 }
 
-DEFAULT_PARAMS = {
-    "tat_pr_to_po":    {"outlier_trim_low": 5, "outlier_trim_high": 95},
-    "supplier_otd":    {"grace_period_days": 0},
-    "tail_spend_pct":  {"threshold_pct": 1.0},
+
+# ── Per-KPI computation parameters (FormulaParamGroup shape) ─────────────────
+# Each entry is the FormulaParamGroup the frontend renders. ParamDef inside
+# `params` mirrors the type the frontend expects: {key,type,label,unit?,
+# min?,max?,step?,default,description,value}. The backend stores user-modified
+# values in sess["formula_params"]; defaults sit here.
+PARAM_GROUPS: Dict[str, Dict[str, Any]] = {
+    "tat_pr_to_po": {
+        "label":       "TAT outlier trimming",
+        "description": "Discard the long tail of PR→PO TATs before averaging. Cleans out one-off stuck POs.",
+        "params": [
+            {"key": "outlier_trim_low",  "type": "number", "label": "Low percentile",  "unit": "%",
+             "min": 0, "max": 25, "step": 1, "default": 5,
+             "description": "Drop PRs with TAT below this percentile."},
+            {"key": "outlier_trim_high", "type": "number", "label": "High percentile", "unit": "%",
+             "min": 75, "max": 100, "step": 1, "default": 95,
+             "description": "Drop PRs with TAT above this percentile."},
+        ],
+    },
+    "supplier_otd": {
+        "label":       "OTD grace period",
+        "description": "Allow a buffer between requested delivery date and the GR posting before flagging late.",
+        "params": [
+            {"key": "grace_period_days", "type": "number", "label": "Grace period", "unit": "days",
+             "min": 0, "max": 14, "step": 1, "default": 0,
+             "description": "GR posted within this many days of requested delivery still counts as on-time."},
+        ],
+    },
+    "tail_spend_pct": {
+        "label":       "Tail-spend threshold",
+        "description": "What share of total spend qualifies a vendor as 'tail'.",
+        "params": [
+            {"key": "threshold_pct", "type": "number", "label": "Vendor share threshold", "unit": "%",
+             "min": 0.1, "max": 5.0, "step": 0.1, "default": 1.0,
+             "description": "Vendors below this share of total spend are counted in the tail."},
+        ],
+    },
+}
+
+# Legacy shape kept for any caller still touching it via the engine helper.
+DEFAULT_PARAMS: Dict[str, Dict[str, Any]] = {
+    kid: {p["key"]: p["default"] for p in group["params"]}
+    for kid, group in PARAM_GROUPS.items()
 }
 
 
@@ -234,14 +274,27 @@ def apply_formula_overrides(session_id: str):
 
 @router.get("/session/{session_id}/results/formula-params")
 def get_formula_params(session_id: str):
+    """Return computation parameters in the FormulaParamGroup shape the
+    frontend expects: { formula_params: { kpi_id: { label, description,
+    params[], has_override } } }. The page reads `paramsData.formula_params`
+    directly and renders one editor per param entry."""
     sess = get_session(session_id)
     saved = sess.get("formula_params") or {}
-    out = {}
-    for kid, defaults in DEFAULT_PARAMS.items():
-        merged = dict(defaults)
-        merged.update(saved.get(kid) or {})
-        out[kid] = merged
-    return {"params": out, "defaults": DEFAULT_PARAMS}
+
+    out: Dict[str, Dict[str, Any]] = {}
+    for kid, group in PARAM_GROUPS.items():
+        kpi_saved = saved.get(kid) or {}
+        params_out: List[Dict[str, Any]] = []
+        for p in group["params"]:
+            value = kpi_saved.get(p["key"], p["default"])
+            params_out.append({**p, "value": value})
+        out[kid] = {
+            "label":        group["label"],
+            "description":  group["description"],
+            "params":       params_out,
+            "has_override": any(p["value"] != p["default"] for p in params_out),
+        }
+    return {"formula_params": out, "defaults": DEFAULT_PARAMS}
 
 
 @router.post("/session/{session_id}/results/formula-params")

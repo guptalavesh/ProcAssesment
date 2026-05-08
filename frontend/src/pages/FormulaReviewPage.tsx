@@ -374,8 +374,11 @@ export default function FormulaReviewPage() {
           if (kpi.has_override) pre[kpi.kpi_id] = { benchmark: kpi.benchmark }
         })
         setOverrides(pre)
+        // Default: open every bucket so the user sees the KPI rows on landing.
+        // Closing one is one click; finding the closed-by-default header is two
+        // (and on the live deploy people kept missing them entirely).
         const bucketState: Record<string, boolean> = {}
-        configData.bucket_order?.forEach((b: string) => { bucketState[b] = false })
+        configData.bucket_order?.forEach((b: string) => { bucketState[b] = true })
         setExpandedBuckets(bucketState)
         setFormulaParamsConfig(paramsData.formula_params ?? {})
       })
@@ -467,19 +470,16 @@ export default function FormulaReviewPage() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto px-4 py-6 space-y-5">
-      <div className="page-header rounded-xl px-6 py-5">
-        <div className="flex items-start justify-between">
+      <div className="acc-card px-6 py-5">
+        <div className="flex items-start justify-between gap-6">
           <div>
-            <h2 className="text-white font-bold text-xl">Formula Review</h2>
-            <p className="text-white/70 text-sm mt-1">
-              Review KPI formulas and benchmarks before viewing results.
-              <strong className="text-white/90"> Calculation parameters</strong> (sliders) re-compute raw values.
-              <strong className="text-white/90"> Benchmark changes</strong> re-score the 1–4 ratings.
+            <p className="eyebrow mb-2">Step 6 of 6 · Pre-results</p>
+            <h2 className="text-[22px] font-semibold tracking-[-0.01em] text-neutral-900">Formula review</h2>
+            <p className="text-[13px] text-neutral-500 mt-1.5 max-w-2xl leading-relaxed">
+              Review KPI formulas and benchmarks before viewing results.{' '}
+              <strong className="text-neutral-900">Calculation parameters</strong> (sliders) re-compute raw values.{' '}
+              <strong className="text-neutral-900">Benchmark changes</strong> re-score the 1–4 ratings.
             </p>
-          </div>
-          <div className="text-right flex-shrink-0">
-            <p className="text-white/60 text-xs">Step 6 of 6</p>
-            <p className="text-white font-bold text-sm mt-0.5">Pre-Results</p>
           </div>
         </div>
       </div>
@@ -534,11 +534,11 @@ export default function FormulaReviewPage() {
         return (
           <div key={bucket} className="rounded-xl border border-gray-200 overflow-hidden shadow-sm">
             <button onClick={() => setExpandedBuckets(prev => ({ ...prev, [bucket]: !prev[bucket] }))}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-brand-dark/95 text-white text-left hover:bg-brand-dark transition-colors">
-              {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              <span className="font-bold text-sm flex-1">{bucket}</span>
-              <span className="text-xs opacity-60">{kpis.length} KPI{kpis.length !== 1 ? 's' : ''}</span>
-              {modifiedCount > 0 && <span className="text-[10px] bg-brand-purple px-2 py-0.5 rounded-full font-semibold">{modifiedCount} modified</span>}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-100 text-neutral-900 text-left hover:bg-neutral-150 transition-colors border-b border-neutral-200">
+              {isOpen ? <ChevronUp size={14} className="text-neutral-500" /> : <ChevronDown size={14} className="text-neutral-500" />}
+              <span className="font-semibold text-sm flex-1">{bucket}</span>
+              <span className="text-xs text-neutral-500">{kpis.length} KPI{kpis.length !== 1 ? 's' : ''}</span>
+              {modifiedCount > 0 && <span className="text-[10px] bg-accent text-white px-2 py-0.5 rounded-full font-semibold">{modifiedCount} modified</span>}
             </button>
             <AnimatePresence initial={false}>
               {isOpen && (
