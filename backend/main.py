@@ -83,6 +83,7 @@ _optional_routers = [
     ("routers.results",        "router"),
     ("routers.kpi_dashboard",  "router"),
     ("routers.ai_insights",    "router"),
+    ("routers.ai_usecases",    "router"),
     ("routers.ppt_export",     "router"),
     ("routers.formula_review", "router"),
     ("routers.file_inspect",   "router"),

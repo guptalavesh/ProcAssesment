@@ -246,7 +246,7 @@ def setup_session(session_id: str, payload: SetupPayload):
 
 @router.get("/templates/qre")
 def download_qre_template():
-    """Generate the Accenture Client Data Pack (9-sheet Excel)."""
+    """Generate the Client Data Pack (9-sheet Excel)."""
     output = io.BytesIO()
     try:
         from openpyxl import Workbook
@@ -263,10 +263,10 @@ def download_qre_template():
         # Sheet 1: Instructions
         ws = wb.active
         ws.title = "Instructions"
-        ws["A1"] = "Accenture Procurement Maturity Assessment"
+        ws["A1"] = "Procurement Maturity Assessment"
         ws["A1"].font = Font(color="460073", bold=True, size=16)
         ws["A2"] = "Client Data Pack v2.0"
-        ws["A3"] = "Complete the highlighted sheets and return to your Accenture engagement team."
+        ws["A3"] = "Complete the highlighted sheets and return to your assessment team."
         ws["A5"] = "Sheets in this workbook:"
         for i, name in enumerate(["QRE", "PO Data", "PR Data", "Invoice Data",
                                    "Sourcing Tool", "Employee Master", "Documents"], 1):
@@ -380,7 +380,7 @@ def download_qre_template():
         return StreamingResponse(
             output,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": 'attachment; filename="Accenture_Assessment_Client_Pack.xlsx"'},
+            headers={"Content-Disposition": 'attachment; filename="AIVault_Client_Data_Pack.xlsx"'},
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -458,7 +458,7 @@ def download_synthetic_data():
         return StreamingResponse(
             output,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": 'attachment; filename="Accenture_Assessment_Synthetic_Test_Data.xlsx"'},
+            headers={"Content-Disposition": 'attachment; filename="AIVault_Synthetic_Test_Data.xlsx"'},
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

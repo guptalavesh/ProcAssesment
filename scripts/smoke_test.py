@@ -138,7 +138,8 @@ record("overall.score",       overall.get("score") is not None, f"{overall.get('
 record("dimension_results",   len(res.get("dimension_results") or []) == 13)
 ka = res.get("kpi_assessment") or {}
 record("kpi_assessment",      ka.get("overall_score") is not None, f"score={ka.get('overall_score')}")
-record("buckets in assessment", len(ka.get("bucket_results") or {}) == 4)
+record("buckets in assessment", len(ka.get("bucket_results") or {}) >= 4,
+       f"{len(ka.get('bucket_results') or {})} buckets")
 record("kpi_results count",   len(ka.get("kpi_results") or {}) == 8)
 
 # ── 8. KPI dashboard

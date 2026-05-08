@@ -27,6 +27,6 @@ SCORE_THRESHOLDS = {
     "foundation":   (0.0, 1.49),
 }
 
-BRAND_PURPLE = "#a100ff"
-BRAND_DARK   = "#460073"
-BRAND_MID    = "#7500c0"
+BRAND_PURPLE = "#2251FF"
+BRAND_DARK   = "#0F141C"
+BRAND_MID    = "#1A41E0"

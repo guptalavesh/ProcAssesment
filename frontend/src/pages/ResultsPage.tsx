@@ -29,7 +29,7 @@ const TAB_PREAMBLES: Record<Tab, string> = {
   kpi:       'Your KPI landscape at a glance. Click any row for the full insight, root cause, and recommended action.',
   dashboard: 'Interactive charts across every bucket and KPI. Filter by bucket using the cards above.',
   rca:       'Systemic drivers behind your gaps, grouped by bucket. The highest-priority bucket is expanded by default.',
-  offerings: 'Accenture services mapped to your actual findings — including buying channel logic, agentic AI use-cases and a strategic category structure inferred from your PO data.',
+  offerings: 'Transformation services mapped to your actual findings — including buying channel logic, agentic AI use-cases and a strategic category structure inferred from your PO data.',
 }
 
 function scoreBadgeClass(score: number | null): string {

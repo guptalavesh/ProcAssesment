@@ -110,7 +110,7 @@ def _build_rich_context(sess) -> str:
 def _build_prompt(sess, force_refresh: bool = False) -> str:
     """Main 5-rule prompt for end-to-end insights generation."""
     context = _build_rich_context(sess)
-    return f"""You are an Accenture procurement consultant analysing a maturity assessment.
+    return f"""You are a procurement consultant analysing a maturity assessment.
 
 DATA CONTEXT:
 {context}

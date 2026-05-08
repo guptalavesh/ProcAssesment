@@ -19,9 +19,9 @@ export default function MaturityRadar({ dims }: Props) {
     <ResponsiveContainer width="100%" height={340}>
       <RadarChart data={data} margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
         <PolarGrid stroke="#e6e6dc" />
-        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: '#460073', fontWeight: 600 }} />
-        <Radar name="Score" dataKey="score" stroke="#a100ff" fill="#a100ff" fillOpacity={0.2}
-          strokeWidth={2} dot={{ fill: '#a100ff', r: 4 }} isAnimationActive />
+        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: '#0F141C', fontWeight: 600 }} />
+        <Radar name="Score" dataKey="score" stroke="#2251FF" fill="#2251FF" fillOpacity={0.2}
+          strokeWidth={2} dot={{ fill: '#2251FF', r: 4 }} isAnimationActive />
         <Tooltip
           content={({ active, payload }) => {
             if (!active || !payload?.length) return null

@@ -62,7 +62,7 @@ KPI_META: Dict[str, Dict[str, Any]] = {
         "weight":    0.10,
         "direction": "lower_is_better",
         "unit":      "%",
-        "bucket":    "Efficiency",
+        "bucket":    "Cost & Spend",
         "sources":   ["po_df"],
     },
     "spend_per_fte": {
@@ -70,16 +70,17 @@ KPI_META: Dict[str, Dict[str, Any]] = {
         "weight":    0.15,
         "direction": "higher_is_better",
         "unit":      "₹ Cr",
-        "bucket":    "Effectiveness",
+        "bucket":    "Cost & Spend",
         "sources":   ["po_df", "workforce_df"],
     },
 }
 
 BUCKETS: Dict[str, list] = {
-    "Efficiency":         ["tat_pr_to_po", "tail_spend"],
-    "Effectiveness":      ["rc_adoption_volume", "savings_per_lpo", "spend_per_fte"],
+    "Efficiency":         ["tat_pr_to_po"],
+    "Effectiveness":      ["rc_adoption_volume", "savings_per_lpo"],
     "Vendor Management":  ["otd"],
     "Risk":               ["pac_3way_match", "emergency_pr_pct"],
+    "Cost & Spend":       ["tail_spend", "spend_per_fte"],
 }
 
 BUCKET_ICONS: Dict[str, str] = {
@@ -87,6 +88,7 @@ BUCKET_ICONS: Dict[str, str] = {
     "Effectiveness":     "Target",
     "Vendor Management": "Users",
     "Risk":              "AlertTriangle",
+    "Cost & Spend":      "DollarSign",
 }
 
 

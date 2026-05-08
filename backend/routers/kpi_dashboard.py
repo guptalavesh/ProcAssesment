@@ -147,13 +147,78 @@ def _kpi_tat_pr_to_po(po_df, pr_df, col_map, params=None):
                         trend_src = merged.assign(_tat=(po_dates - pr_dates_s).dt.days)
                         trend_src = trend_src[trend_src["_tat"] > 0]
                         trend = _monthly_trend(trend_src, po_date_col, "_tat", "mean")
+                        # By-plant / by-vendor / by-category breakdowns: average
+                        # TAT per group. Need the matching po_df rows merged
+                        # back onto the trend_src so we have the dimension
+                        # columns alongside `_tat`.
+                        plant_col  = _get_po_col(po_df, "plant",          col_map)
+                        cat_col    = _get_po_col(po_df, "material_group", col_map)
+                        vendor_col = _get_po_col(po_df, "vendor",         col_map)
+                        pg_col     = _get_po_col(po_df, "purchase_group", col_map)
+                        # Build a single keyed view: trend_src already has
+                        # po_date_col + _pr_key. Re-merge to get dimension cols.
+                        po_keyed = po_df[[po_pr_ref_col]].rename(columns={po_pr_ref_col: "_pr_key"})
+                        po_keyed = po_keyed.assign(_tat=tats.values[:len(po_keyed)] if len(po_keyed) == len(tats) else None)
+                        # Simpler: average per-row TAT joined back via index.
+                        merged_by_idx = trend_src.copy()
+                        for col in (plant_col, cat_col, vendor_col, pg_col):
+                            if col and col in po_df.columns:
+                                merged_by_idx[col] = po_df.loc[merged_by_idx.index.intersection(po_df.index), col] if False else None
+
+                        def _avg_breakdown(group_col):
+                            if not group_col or group_col not in po_df.columns:
+                                return []
+                            try:
+                                # Need the avg TAT per group. Re-merge cleanly.
+                                m = po_df[[po_pr_ref_col, group_col]].rename(columns={po_pr_ref_col: "_pr_key"})
+                                m = m.merge(pr_dates, on="_pr_key", how="inner")
+                                m["_tat"] = (
+                                    pd.to_datetime(po_df.loc[m.index, po_date_col], errors="coerce")
+                                    - pd.to_datetime(m["_pr_date"], errors="coerce")
+                                ).dt.days if False else None
+                                # Fallback: use the simpler grouping path against trend_src
+                                if group_col in trend_src.columns:
+                                    grouped = trend_src.groupby(group_col)["_tat"].agg(["mean", "size"])
+                                    grouped = grouped[grouped["size"] >= 5].sort_values("size", ascending=False).head(10)
+                                    return [
+                                        {"name": str(name), "value": round(float(row["mean"]), 1), "n": int(row["size"])}
+                                        for name, row in grouped.iterrows()
+                                    ]
+                                return []
+                            except Exception:
+                                return []
+
+                        # The trend_src came from merged which only has po_date_col + _pr_key.
+                        # For breakdowns, build a clean per-PO TAT df with dim cols.
+                        tat_with_dims = po_df.copy()
+                        # Map _pr_key (PR_Reference) -> pr_date and compute TAT per PO row.
+                        pr_lookup = pr_dates.set_index("_pr_key")["_pr_date"].to_dict()
+                        tat_with_dims["_pr_date"] = tat_with_dims[po_pr_ref_col].map(pr_lookup)
+                        tat_with_dims["_tat"] = (
+                            pd.to_datetime(tat_with_dims[po_date_col], errors="coerce")
+                            - pd.to_datetime(tat_with_dims["_pr_date"], errors="coerce")
+                        ).dt.days
+                        tat_with_dims = tat_with_dims[tat_with_dims["_tat"].notna() & (tat_with_dims["_tat"] > 0)]
+
+                        def _grp(col):
+                            if not col or col not in tat_with_dims.columns: return []
+                            grp = tat_with_dims.groupby(col)["_tat"].agg(["mean", "size"])
+                            grp = grp[grp["size"] >= 5].sort_values("size", ascending=False).head(10)
+                            return [
+                                {"name": str(name), "value": round(float(row["mean"]), 1), "n": int(row["size"])}
+                                for name, row in grp.iterrows()
+                            ]
+
                         return {
                             "id": "tat_pr_to_po", "label": "PR-to-PO TAT",
                             "available": True, "value": round(avg_tat, 1),
                             "unit": "days", "benchmark": 9,
                             "direction": "lower_is_better",
                             "trend": trend[:24],
-                            "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
+                            "by_plant":          _grp(plant_col),
+                            "by_vendor":         _grp(vendor_col),
+                            "by_category":       _grp(cat_col),
+                            "by_purchase_group": _grp(pg_col),
                             "confidence": "high" if len(tats_arr) >= 50 else "medium",
                             "row_count": len(tats_arr),
                         }
@@ -234,10 +299,25 @@ def _kpi_supplier_otd(po_df, col_map, params=None):
         grace = (params or {}).get("grace_period_days", 0)
         on_time = (tmp["gr"] <= tmp["del"] + pd.Timedelta(days=grace))
         otd_pct = round(float(on_time.mean() * 100), 1) if len(tmp) > 0 else None
+        # Project the on-time mask back onto the original po_df indexes so the
+        # breakdown helpers can group by plant/vendor/category. Rows missing
+        # GR/Delivery dates count as 'not on time' for the breakdown — they
+        # already drop out of the headline mean.
+        po_with_flag = po_df.assign(_otd_flag=False)
+        po_with_flag.loc[tmp.index, "_otd_flag"] = on_time.values
+        plant_col  = _get_po_col(po_df, "plant",          col_map)
+        cat_col    = _get_po_col(po_df, "material_group", col_map)
+        vendor_col = _get_po_col(po_df, "vendor",         col_map)
+        pg_col     = _get_po_col(po_df, "purchase_group", col_map)
+        on_time_only = po_with_flag.loc[tmp.index]
         return {
             "id": "supplier_otd", "label": "Supplier OTD", "available": otd_pct is not None,
             "value": otd_pct, "unit": "%", "benchmark": 85, "direction": "higher_is_better",
-            "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
+            "trend": [],
+            "by_plant":          _percent_breakdown(on_time_only, plant_col,  on_time_only["_otd_flag"]),
+            "by_vendor":         _percent_breakdown(on_time_only, vendor_col, on_time_only["_otd_flag"]),
+            "by_category":       _percent_breakdown(on_time_only, cat_col,    on_time_only["_otd_flag"]),
+            "by_purchase_group": _percent_breakdown(on_time_only, pg_col,     on_time_only["_otd_flag"]),
             "confidence": "high" if len(tmp) >= 50 else "medium",
         }
     except Exception as e:
@@ -280,7 +360,7 @@ def _kpi_savings_lpo(po_df, col_map):
 
 
 def _kpi_pac_prs(po_df, pr_df, col_map):
-    """Single-source / PAC PRs %."""
+    """Single-source / PAC PRs % — PRs with a pre-assigned vendor."""
     try:
         if pr_df is None or pr_df.empty:
             return {"id": "pac_prs", "label": "Single-Source PRs", "available": False, "value": None,
@@ -293,10 +373,19 @@ def _kpi_pac_prs(po_df, pr_df, col_map):
                     "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": []}
         has_vendor = pr_df[vendor_col].notna() & (pr_df[vendor_col].astype(str).str.strip() != "")
         pac_pct = round(float(has_vendor.mean() * 100), 1)
+        # Breakdown KPIs are most informative split by Plant / Material Group
+        # / Cost Centre — pull whatever's available on the PR file.
+        pr_plant_col = next((c for c in ["Plant","plant"] if c in pr_df.columns), None)
+        pr_cat_col   = next((c for c in ["Material_Group","material_group"] if c in pr_df.columns), None)
+        pr_cc_col    = next((c for c in ["Cost_Center","cost_center","CostCenter"] if c in pr_df.columns), None)
         return {
             "id": "pac_prs", "label": "Single-Source PRs", "available": True,
             "value": pac_pct, "unit": "%", "benchmark": 5, "direction": "lower_is_better",
-            "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
+            "trend": [],
+            "by_plant":          _percent_breakdown(pr_df, pr_plant_col, has_vendor),
+            "by_vendor":         _percent_breakdown(pr_df, vendor_col,    has_vendor),
+            "by_category":       _percent_breakdown(pr_df, pr_cat_col,   has_vendor),
+            "by_purchase_group": _percent_breakdown(pr_df, pr_cc_col,    has_vendor),
         }
     except Exception as e:
         return {"id": "pac_prs", "label": "Single-Source PRs", "available": False, "value": None,

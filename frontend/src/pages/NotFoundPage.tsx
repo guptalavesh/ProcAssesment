@@ -14,7 +14,7 @@ export default function NotFoundPage() {
       >
         <div className="flex items-center justify-center gap-2 mb-6 opacity-80">
           <AccentureMark className="w-5 h-5 text-white" />
-          <span className="text-sm font-semibold tracking-wide">Accenture Maturity Assessment</span>
+          <span className="text-sm font-semibold tracking-wide">AIVault · Maturity Assessment</span>
         </div>
         <p className="text-[140px] leading-none font-black tracking-tight bg-gradient-to-br from-white to-white/40 bg-clip-text text-transparent">
           404
