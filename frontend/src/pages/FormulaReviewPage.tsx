@@ -68,13 +68,18 @@ const SCORE_BG: Record<string, string> = {
 
 function scoreThresholds(kpi: KpiFormula, bench: number) {
   const { direction, multipliers, unit } = kpi
-  const m4 = multipliers.score_4
-  const m3 = multipliers.score_3
-  const m2 = multipliers.score_2
-  const fmt = (v: number) =>
-    unit === '₹ Cr' ? `₹${formatIndianInt(v)} Cr`
-    : unit === 'days' ? `${v.toFixed(0)} days`
-    : `${v.toFixed(0)}%`
+  // Accept either "score_4/3/2/1" or the legacy "leading/advanced/..." key
+  // style — older deploys served the latter, and we want the threshold
+  // preview to render real numbers either way instead of "NaN days".
+  const m4 = (multipliers.score_4 ?? multipliers.leading) as number
+  const m3 = (multipliers.score_3 ?? multipliers.advanced) as number
+  const m2 = (multipliers.score_2 ?? multipliers.intermediate) as number
+  const fmt = (v: number) => {
+    if (typeof v !== 'number' || !isFinite(v)) return '—'
+    return unit === '₹ Cr' ? `₹${formatIndianInt(v)} Cr`
+      : unit === 'days' ? `${v.toFixed(0)} days`
+      : `${v.toFixed(0)}%`
+  }
 
   if (direction === 'lower_is_better') {
     return [

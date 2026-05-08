@@ -166,6 +166,21 @@ PARAM_GROUPS: Dict[str, Dict[str, Any]] = {
              "description": "GR posted within this many days of requested delivery still counts as on-time."},
         ],
     },
+    "savings_lpo": {
+        "label":       "Savings vs LPO trimming",
+        "description": "Trim the price-vs-LPO distribution before averaging. Prevents a few extreme rows from dominating the savings number.",
+        "params": [
+            {"key": "outlier_trim_low",  "type": "number", "label": "Low percentile",  "unit": "%",
+             "min": 0, "max": 25, "step": 1, "default": 5,
+             "description": "Drop savings observations below this percentile (deep discounts / promo SKUs)."},
+            {"key": "outlier_trim_high", "type": "number", "label": "High percentile", "unit": "%",
+             "min": 75, "max": 100, "step": 1, "default": 95,
+             "description": "Drop savings observations above this percentile (data errors / unit changes)."},
+            {"key": "include_zero_lpo",  "type": "boolean", "label": "Include rows with zero LPO",
+             "default": False,
+             "description": "Off by default — rows with no prior price reference can't be measured against LPO."},
+        ],
+    },
     "tail_spend_pct": {
         "label":       "Tail-spend threshold",
         "description": "What share of total spend qualifies a vendor as 'tail'.",
@@ -173,6 +188,48 @@ PARAM_GROUPS: Dict[str, Dict[str, Any]] = {
             {"key": "threshold_pct", "type": "number", "label": "Vendor share threshold", "unit": "%",
              "min": 0.1, "max": 5.0, "step": 0.1, "default": 1.0,
              "description": "Vendors below this share of total spend are counted in the tail."},
+        ],
+    },
+    "emergency_prs": {
+        "label":       "Emergency PR detection",
+        "description": "Which PR_Type / Priority values count as 'emergency'.",
+        "params": [
+            {"key": "include_routine", "type": "boolean", "label": "Treat 'Routine' as emergency",
+             "default": False,
+             "description": "Off by default — only Emergency / Urgent / Rush types count."},
+            {"key": "release_same_day", "type": "boolean", "label": "Treat same-day-released PRs as emergency",
+             "default": True,
+             "description": "PRs released on the same day they were created — usually unplanned."},
+        ],
+    },
+    "pac_prs": {
+        "label":       "Single-source detection",
+        "description": "How aggressively to flag PRs as single-source / pre-assigned.",
+        "params": [
+            {"key": "vendor_field_required", "type": "boolean", "label": "Require Preferred_Vendor field",
+             "default": True,
+             "description": "When on, only PRs with Preferred_Vendor set count. Off uses a wider net (Fixed_Vendor / Vendor)."},
+        ],
+    },
+    "rc_adoption_volume": {
+        "label":       "RC coverage scope",
+        "description": "Which agreement columns count as rate-contract coverage.",
+        "params": [
+            {"key": "include_outline_agreement", "type": "boolean", "label": "Include Outline_Agreement",
+             "default": True,
+             "description": "Standard SAP outline agreement / framework PO."},
+            {"key": "include_contract_number",   "type": "boolean", "label": "Include Contract_Number",
+             "default": True,
+             "description": "Free-form contract reference column."},
+        ],
+    },
+    "spend_per_fte": {
+        "label":       "Spend / FTE basis",
+        "description": "How total spend is rolled up before dividing by FTE count.",
+        "params": [
+            {"key": "exclude_capex", "type": "boolean", "label": "Exclude CapEx-flagged POs",
+             "default": False,
+             "description": "When on, POs marked CapEx (FO doc type) are dropped before the per-FTE divide."},
         ],
     },
 }
