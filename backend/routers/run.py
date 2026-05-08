@@ -48,19 +48,21 @@ def _prepare_kpi_df(po_df: pd.DataFrame, col_map: Dict[str, str]) -> pd.DataFram
             except Exception:
                 pass
 
-    # Build combined agreement column
+    # Build combined agreement column. astype(str) on NaN cells produces the
+    # literal string "nan" — strip + replace so empty/NaN/"nan" all collapse
+    # to "" before we pick the non-empty value.
     contract_col = col_map.get("contract_number")
     outline_col = col_map.get("outline_agreement")
-    if contract_col and contract_col in df.columns:
-        c1 = df[contract_col].astype(str).str.strip()
-    else:
-        c1 = pd.Series([""] * len(df), index=df.index)
-    if outline_col and outline_col in df.columns:
-        c2 = df[outline_col].astype(str).str.strip()
-    else:
-        c2 = pd.Series([""] * len(df), index=df.index)
-    df["agreement"] = c1.where(c1 != "" + "nan", c2)
-    df["agreement"] = df["agreement"].where(df["agreement"].astype(str).str.strip() != "", c2)
+    def _norm(series_or_const):
+        if isinstance(series_or_const, pd.Series):
+            # NB: pandas astype(str) does NOT always convert NaN floats to "nan"
+            # strings — fillna first, then convert + strip + scrub literals.
+            return (series_or_const.fillna("").astype(str).str.strip()
+                    .replace({"nan": "", "None": "", "NaN": ""}))
+        return pd.Series([""] * len(df), index=df.index)
+    c1 = _norm(df[contract_col]) if contract_col and contract_col in df.columns else _norm(None)
+    c2 = _norm(df[outline_col])  if outline_col  and outline_col  in df.columns else _norm(None)
+    df["agreement"] = c1.where(c1 != "", c2)
 
     # last po price: shift(1) grouped by material + sorted by po_date
     mat_col = col_map.get("material_number")
@@ -172,14 +174,21 @@ def _run_pipeline(session_id: str):
                     formula_overrides=sess.get("formula_overrides") or {},
                     formula_params=sess.get("formula_params") or {},
                 )
-                # Dashboard override: replace kpi_engine actuals with kpi_dashboard values
+                # Dashboard override: replace kpi_engine actuals with kpi_dashboard values.
+                # Dashboard reports percentages as 0–100 (e.g. 56.2 = 56.2%). The
+                # serializer renders unit "%" by multiplying by 100, so for those
+                # KPIs we have to divide back to a fraction first.
                 try:
                     from routers.kpi_dashboard import _compute_kpi_dashboard
                     dash = _compute_kpi_dashboard(session_id)
                     dash_kpis = dash.get("kpis", {}) or {}
                     for kid, kr in (kpi_assessment.kpi_results or {}).items():
                         if kid in dash_kpis and dash_kpis[kid].get("available"):
-                            kr.actual = dash_kpis[kid].get("value")
+                            value = dash_kpis[kid].get("value")
+                            unit = getattr(kr, "unit", "")
+                            if unit == "%" and value is not None:
+                                value = value / 100.0
+                            kr.actual = value
                 except Exception as e:
                     print(f"[pipeline] dashboard override skip: {e}")
                 sess["kpi_assessment"] = kpi_assessment
