@@ -348,10 +348,27 @@ def _kpi_savings_lpo(po_df, col_map):
         lo, hi = np.percentile(savings_pct, [5, 95])
         savings_pct = savings_pct[(savings_pct >= lo) & (savings_pct <= hi)]
         avg_savings = round(float(savings_pct.mean()), 1) if len(savings_pct) > 0 else None
+        # By-dim breakdowns: average savings_pct per group (size ≥ 5).
+        plant_col  = _get_po_col(po_df, "plant",          col_map)
+        cat_col    = _get_po_col(po_df, "material_group", col_map)
+        vendor_col = _get_po_col(po_df, "vendor",         col_map)
+        pg_col     = _get_po_col(po_df, "purchase_group", col_map)
+        view = po_df.loc[tmp.index].assign(_savings=savings_pct.reindex(tmp.index))
+        view = view.dropna(subset=["_savings"])
+        def _grp_mean(col):
+            if not col or col not in view.columns: return []
+            grp = view.groupby(col)["_savings"].agg(["mean", "size"])
+            grp = grp[grp["size"] >= 5].sort_values("size", ascending=False).head(10)
+            return [{"name": str(name), "value": round(float(row["mean"]), 1), "n": int(row["size"])}
+                    for name, row in grp.iterrows()]
         return {
             "id": "savings_lpo", "label": "Savings over LPO", "available": avg_savings is not None,
             "value": avg_savings, "unit": "%", "benchmark": 5, "direction": "higher_is_better",
-            "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
+            "trend": [],
+            "by_plant":          _grp_mean(plant_col),
+            "by_vendor":         _grp_mean(vendor_col),
+            "by_category":       _grp_mean(cat_col),
+            "by_purchase_group": _grp_mean(pg_col),
         }
     except Exception as e:
         return {"id": "savings_lpo", "label": "Savings over LPO", "available": False, "value": None,
@@ -409,10 +426,18 @@ def _kpi_emergency_prs(pr_df, col_map):
             lambda v: any(k in v for k in urgent_keywords)
         )
         pct = round(float(is_emerg.mean() * 100), 1)
+        pr_plant_col = next((c for c in ["Plant","plant"] if c in pr_df.columns), None)
+        pr_cat_col   = next((c for c in ["Material_Group","material_group"] if c in pr_df.columns), None)
+        pr_creator   = next((c for c in ["PR_Creator","Created_By","Requestor"] if c in pr_df.columns), None)
+        pr_cc_col    = next((c for c in ["Cost_Center","cost_center"] if c in pr_df.columns), None)
         return {
             "id": "emergency_prs", "label": "Emergency PRs", "available": True,
             "value": pct, "unit": "%", "benchmark": 10, "direction": "lower_is_better",
-            "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
+            "trend": [],
+            "by_plant":          _percent_breakdown(pr_df, pr_plant_col, is_emerg),
+            "by_vendor":         _percent_breakdown(pr_df, pr_creator,   is_emerg),
+            "by_category":       _percent_breakdown(pr_df, pr_cat_col,   is_emerg),
+            "by_purchase_group": _percent_breakdown(pr_df, pr_cc_col,    is_emerg),
         }
     except Exception as e:
         return {"id": "emergency_prs", "label": "Emergency PRs", "available": False, "value": None,
@@ -453,10 +478,34 @@ def _kpi_tail_spend(po_df, col_map, threshold_pct=1.0):
         tail_mask = tail_mask_a if tail_mask_a.mean() < 0.95 else tail_mask_b
         tail_spend = vendor_spend[tail_mask].sum()
         tail_pct = round(float(tail_spend / total_spend * 100), 1)
+        # Per-vendor tail-spend share — the "by_vendor" breakdown lists the
+        # bottom-most vendors by spend. Surfaces who's actually the tail.
+        tail_vendors_top = vendor_spend[tail_mask].sort_values(ascending=False).head(15)
+        by_vendor_tail = [
+            {"name": str(v), "value": round(float(s) / 1e7, 2), "pct": round(float(s) / total_spend * 100, 2)}
+            for v, s in tail_vendors_top.items()
+        ]
+        plant_col = _get_po_col(po_df, "plant",          col_map)
+        cat_col   = _get_po_col(po_df, "material_group", col_map)
+        pg_col    = _get_po_col(po_df, "purchase_group", col_map)
+        # Per-plant / per-category — total tail spend share within that group
+        def _tail_share_by(col):
+            if not col or col not in po_df.columns: return []
+            tail_vendor_set = set(vendor_spend[tail_mask].index)
+            view = po_df[[col, vendor_col]].assign(_nv=nv)
+            view["_is_tail"] = view[vendor_col].isin(tail_vendor_set)
+            agg = view.groupby(col).agg(total=("_nv", "sum"), tail=("_nv", lambda s: s.where(view.loc[s.index, "_is_tail"]).sum()))
+            agg = agg[agg["total"] > 0].sort_values("total", ascending=False).head(10)
+            return [{"name": str(name), "value": round(float(row["tail"] / row["total"] * 100), 1), "pct": round(float(row["tail"] / row["total"] * 100), 1)}
+                    for name, row in agg.iterrows()]
         return {
             "id": "tail_spend_pct", "label": "Tail Spend %", "available": True,
             "value": tail_pct, "unit": "%", "benchmark": 20, "direction": "lower_is_better",
-            "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
+            "trend": [],
+            "by_plant":          _tail_share_by(plant_col),
+            "by_vendor":         by_vendor_tail,
+            "by_category":       _tail_share_by(cat_col),
+            "by_purchase_group": _tail_share_by(pg_col),
         }
     except Exception as e:
         return {"id": "tail_spend_pct", "available": False, "value": None, "unit": "%",
