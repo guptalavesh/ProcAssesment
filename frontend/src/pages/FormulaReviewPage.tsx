@@ -436,7 +436,7 @@ export default function FormulaReviewPage() {
 
   const handleSkip = () => { setScreen('results'); navigate('/results') }
 
-  const grouped = config
+  const grouped = config && Array.isArray(config.bucket_order) && Array.isArray(config.kpis)
     ? config.bucket_order.reduce<Record<string, KpiFormula[]>>((acc, bucket) => {
         const kpis = config.kpis.filter(k => k.bucket === bucket)
         if (kpis.length) acc[bucket] = kpis
