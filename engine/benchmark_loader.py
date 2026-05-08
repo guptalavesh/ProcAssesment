@@ -50,6 +50,11 @@ def _format(kid: str, val: float) -> str:
     return f"{round(val * 100)}%"
 
 
-def get_benchmark_display(benchmarks: Dict[str, float]) -> Dict[str, Dict[str, Any]]:
-    """Return {kpi_id: {value, formatted}} for the configure screen."""
-    return {kid: {"value": val, "formatted": _format(kid, val)} for kid, val in (benchmarks or {}).items()}
+def get_benchmark_display(benchmarks: Dict[str, float]) -> Dict[str, str]:
+    """Return {kpi_id: formatted-string} for the configure screen.
+
+    NB: must be a flat str map. The frontend renders this directly as
+    `{config.benchmarks_display[kid]}`, so handing back nested objects
+    triggers React error #31 (Objects are not valid as a React child).
+    """
+    return {kid: _format(kid, val) for kid, val in (benchmarks or {}).items()}

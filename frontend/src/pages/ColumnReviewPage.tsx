@@ -155,7 +155,7 @@ export default function ColumnReviewPage() {
             <tbody>
               {Object.entries(state.suggestions).map(([logical, sug]) => (
                 <tr key={logical}>
-                  <td className="font-medium">{logical}<br /><span className="text-caption font-normal">{state.skill_aliases[logical]}</span></td>
+                  <td className="font-medium">{logical}<br /><span className="text-caption font-normal">{Array.isArray(state.skill_aliases?.[logical]) ? state.skill_aliases[logical].join(', ') : (state.skill_aliases?.[logical] ?? '')}</span></td>
                   <td className="font-mono text-brand-dark">{sug.suggested}</td>
                   <td>
                     <span className={cn('font-semibold', sug.confidence > 0.9 ? 'text-green-700' : sug.confidence > 0.8 ? 'text-orange-600' : 'text-red-600')}>
