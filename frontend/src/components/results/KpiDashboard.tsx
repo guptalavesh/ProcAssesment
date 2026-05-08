@@ -89,7 +89,7 @@ function TrendChart({ kpi }: { kpi: KpiData }) {
           <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#6b7280' }} />
           <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} />
           <Tooltip />
-          <Line type="monotone" dataKey="value" stroke="#a100ff" strokeWidth={2} dot={{ r: 3 }} />
+          <Line type="monotone" dataKey="value" stroke="#2251FF" strokeWidth={2} dot={{ r: 3 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -106,9 +106,9 @@ function VendorPareto({ kpi }: { kpi: KpiData }) {
         <BarChart data={data} layout="vertical">
           <CartesianGrid stroke="#f0eeed" strokeDasharray="3 3" />
           <XAxis type="number" tick={{ fontSize: 10 }} />
-          <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#460073' }} width={100} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#0F141C' }} width={100} />
           <Tooltip />
-          <Bar dataKey="value" fill="#a100ff" />
+          <Bar dataKey="value" fill="#2251FF" />
         </BarChart>
       </ResponsiveContainer>
     </div>

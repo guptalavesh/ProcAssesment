@@ -101,11 +101,16 @@ def _kpi_tat_pr_to_po(po_df, pr_df, col_map, params=None):
                     tats_arr = _tat_trim(tats_arr, lo, hi)
                     if len(tats_arr) > 0:
                         avg_tat = float(np.mean(tats_arr))
-                        trend = _monthly_trend(merged.assign(_tat=(po_dates - pr_dates_s).dt.days), po_date_col, "_tat", "mean")
+                        # Trend: build off the same positive-only series so the
+                        # monthly average never goes negative (some merged rows
+                        # land where PR_date > PO_date — bad data, drop).
+                        trend_src = merged.assign(_tat=(po_dates - pr_dates_s).dt.days)
+                        trend_src = trend_src[trend_src["_tat"] > 0]
+                        trend = _monthly_trend(trend_src, po_date_col, "_tat", "mean")
                         return {
                             "id": "tat_pr_to_po", "label": "PR-to-PO TAT",
                             "available": True, "value": round(avg_tat, 1),
-                            "unit": "days", "benchmark": 45,
+                            "unit": "days", "benchmark": 9,
                             "direction": "lower_is_better",
                             "trend": trend[:24],
                             "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
@@ -113,12 +118,12 @@ def _kpi_tat_pr_to_po(po_df, pr_df, col_map, params=None):
                             "row_count": len(tats_arr),
                         }
         return {"id": "tat_pr_to_po", "label": "PR-to-PO TAT", "available": False, "value": None,
-                "unit": "days", "benchmark": 45, "direction": "lower_is_better",
+                "unit": "days", "benchmark": 9, "direction": "lower_is_better",
                 "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": []}
     except Exception as e:
         print(f"[kpi_tat] ERROR: {e}")
         return {"id": "tat_pr_to_po", "label": "PR-to-PO TAT", "available": False, "value": None,
-                "unit": "days", "benchmark": 45, "direction": "lower_is_better",
+                "unit": "days", "benchmark": 9, "direction": "lower_is_better",
                 "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": []}
 
 
@@ -146,14 +151,14 @@ def _kpi_rc_adoption(po_df, col_map, params=None):
         vol_kpi = {
             "id": "rc_adoption_volume", "label": "RC Adoption (Volume)",
             "available": True, "value": rc_vol_pct,
-            "unit": "%", "benchmark": 80, "direction": "higher_is_better",
+            "unit": "%", "benchmark": 65, "direction": "higher_is_better",
             "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
             "confidence": "high" if len(po_df) >= 50 else "medium",
         }
         val_kpi = {
             "id": "rc_adoption_value", "label": "RC Adoption (Value)",
             "available": rc_val_pct is not None, "value": rc_val_pct,
-            "unit": "%", "benchmark": 75, "direction": "higher_is_better",
+            "unit": "%", "benchmark": 60, "direction": "higher_is_better",
             "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
         }
         return (vol_kpi, val_kpi)
@@ -168,7 +173,7 @@ def _kpi_supplier_otd(po_df, col_map, params=None):
         del_col = _get_po_col(po_df, "pr_delivery_date", col_map)
         if not gr_col or not del_col:
             return {"id": "supplier_otd", "label": "Supplier OTD", "available": False, "value": None,
-                    "unit": "%", "benchmark": 91, "direction": "higher_is_better",
+                    "unit": "%", "benchmark": 85, "direction": "higher_is_better",
                     "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": []}
         tmp = po_df[[gr_col, del_col]].copy()
         tmp["gr"] = pd.to_datetime(tmp[gr_col], errors="coerce")
@@ -179,13 +184,13 @@ def _kpi_supplier_otd(po_df, col_map, params=None):
         otd_pct = round(float(on_time.mean() * 100), 1) if len(tmp) > 0 else None
         return {
             "id": "supplier_otd", "label": "Supplier OTD", "available": otd_pct is not None,
-            "value": otd_pct, "unit": "%", "benchmark": 91, "direction": "higher_is_better",
+            "value": otd_pct, "unit": "%", "benchmark": 85, "direction": "higher_is_better",
             "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
             "confidence": "high" if len(tmp) >= 50 else "medium",
         }
     except Exception as e:
         return {"id": "supplier_otd", "label": "Supplier OTD", "available": False, "value": None,
-                "unit": "%", "benchmark": 91, "direction": "higher_is_better",
+                "unit": "%", "benchmark": 85, "direction": "higher_is_better",
                 "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": []}
 
 
@@ -251,12 +256,12 @@ def _kpi_emergency_prs(pr_df, col_map):
     try:
         if pr_df is None or pr_df.empty:
             return {"id": "emergency_prs", "label": "Emergency PRs", "available": False, "value": None,
-                    "unit": "%", "benchmark": 5, "direction": "lower_is_better",
+                    "unit": "%", "benchmark": 10, "direction": "lower_is_better",
                     "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": []}
         type_col = next((c for c in ["PR_Type","Priority","Urgency","Document_Type","pr_type"] if c in pr_df.columns), None)
         if not type_col:
             return {"id": "emergency_prs", "label": "Emergency PRs", "available": False, "value": None,
-                    "unit": "%", "benchmark": 5, "direction": "lower_is_better",
+                    "unit": "%", "benchmark": 10, "direction": "lower_is_better",
                     "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": []}
         urgent_keywords = ["emergency","urgent","rush","express","undef","immediate","hot"]
         is_emerg = pr_df[type_col].astype(str).str.lower().apply(
@@ -265,12 +270,12 @@ def _kpi_emergency_prs(pr_df, col_map):
         pct = round(float(is_emerg.mean() * 100), 1)
         return {
             "id": "emergency_prs", "label": "Emergency PRs", "available": True,
-            "value": pct, "unit": "%", "benchmark": 5, "direction": "lower_is_better",
+            "value": pct, "unit": "%", "benchmark": 10, "direction": "lower_is_better",
             "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
         }
     except Exception as e:
         return {"id": "emergency_prs", "label": "Emergency PRs", "available": False, "value": None,
-                "unit": "%", "benchmark": 5, "direction": "lower_is_better",
+                "unit": "%", "benchmark": 10, "direction": "lower_is_better",
                 "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": []}
 
 
@@ -288,9 +293,23 @@ def _kpi_tail_spend(po_df, col_map, threshold_pct=1.0):
             return {"id": "tail_spend_pct", "available": False, "value": None, "unit": "%",
                     "benchmark": 20, "direction": "lower_is_better",
                     "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": []}
-        vendor_spend = po_df.assign(_nv=nv).groupby(vendor_col)["_nv"].sum()
+        vendor_spend = po_df.assign(_nv=nv).groupby(vendor_col)["_nv"].sum().sort_values(ascending=False)
+        n_vendors = len(vendor_spend)
+        # Two definitions, take the more conservative (lower tail %):
+        #   (a) vendors below `threshold_pct` of total spend (legacy)
+        #   (b) vendors past the top 20% by rank (Pareto cut)
+        # On wide vendor bases (1000s of suppliers), (a) marks almost everyone
+        # as tail because each vendor is < threshold_pct individually. (b)
+        # keeps the result anchored to the spend-concentration story even when
+        # the supplier count gets very large.
         vendor_pct = vendor_spend / total_spend * 100
-        tail_mask = vendor_pct < threshold_pct
+        tail_mask_a = vendor_pct < threshold_pct
+        n_top = max(1, int(n_vendors * 0.2))
+        tail_mask_b = pd.Series([False] * n_vendors, index=vendor_spend.index)
+        tail_mask_b.iloc[n_top:] = True
+        # Use (b) when (a) classifies > 95% of vendors as tail (broken on
+        # wide bases). Otherwise use (a).
+        tail_mask = tail_mask_a if tail_mask_a.mean() < 0.95 else tail_mask_b
         tail_spend = vendor_spend[tail_mask].sum()
         tail_pct = round(float(tail_spend / total_spend * 100), 1)
         return {
@@ -360,7 +379,7 @@ def _compute_kpi_dashboard(session_id: str, plant: str = "", category: str = "",
         kpis["spend_per_fte"] = {
             "id": "spend_per_fte", "label": "Spend per FTE",
             "available": spend_per_fte is not None, "value": spend_per_fte,
-            "unit": "₹ Cr", "benchmark": 15, "direction": "higher_is_better",
+            "unit": "₹ Cr", "benchmark": 18, "direction": "higher_is_better",
             "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
         }
         vendor_col = _get_po_col(po_f, "vendor", col_map)
@@ -391,7 +410,7 @@ def _compute_kpi_dashboard(session_id: str, plant: str = "", category: str = "",
             kpis["pareto_vendors"] = {
                 "id": "pareto_vendors", "label": "Pareto Vendor Concentration",
                 "available": True, "value": top20_pct,
-                "unit": "%", "benchmark": 80, "direction": "higher_is_better",
+                "unit": "%", "benchmark": 65, "direction": "higher_is_better",
                 "trend": [], "by_plant": [], "by_vendor": [], "by_category": [], "by_purchase_group": [],
             }
 
