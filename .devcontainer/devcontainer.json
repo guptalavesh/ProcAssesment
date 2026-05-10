@@ -1,0 +1,32 @@
+{
+  "name": "ProcAssesment",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.11" },
+    "ghcr.io/devcontainers/features/node:1":   { "version": "20" },
+    "ghcr.io/dhoeric/features/google-cloud-cli:1": {}
+  },
+  "forwardPorts": [5173, 8002],
+  "portsAttributes": {
+    "5173": { "label": "Frontend (Vite)",   "onAutoForward": "openBrowser" },
+    "8002": { "label": "Backend (FastAPI)", "onAutoForward": "silent"      }
+  },
+  "postCreateCommand": "pip install -r backend/requirements.txt && cd frontend && npm install",
+  "postAttachCommand": "echo 'Run: gcloud auth login && gcloud auth application-default login && bash scripts/setup_gcp.sh'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "googlecloudtools.cloudcode"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": false
+      }
+    }
+  },
+  "remoteUser": "codespace"
+}
