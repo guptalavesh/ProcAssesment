@@ -201,6 +201,50 @@ BASE=https://<project>.web.app/api/v1 python scripts/smoke_test.py
 
 The harness exits non-zero on any failure — fine to wire into CI.
 
+## Custom domain (subdomain-only pattern)
+
+The Firebase Hosting default URL is `https://<project>.web.app`. To serve
+the app from your own domain, **add a subdomain only** — never the apex,
+never a wildcard. That way one DNS zone (e.g. `lgai.in`) can host this
+app on `proc.lgai.in`, a marketing site on `www.lgai.in`, an API on
+`api.lgai.in`, etc., each independently, without one project's
+configuration affecting the others.
+
+### Setup
+
+1. **Firebase Console** → Hosting on this project → **Add custom domain**
+   → enter the full subdomain (e.g. `proc.lgai.in`). Don't tick any
+   "include apex" / "redirect from root" option.
+2. Firebase shows you a **TXT** record (ownership) and one or two **A**
+   records (Firebase edge IPs). Copy them.
+3. **At your DNS provider** for the parent zone (`lgai.in`):
+   - Add the TXT record on the exact name Firebase requested
+   - Add the A records on the subdomain label (`proc`)
+   - **Don't** add anything on `@` (apex), don't add a wildcard `*`
+   - TTL 300s while iterating
+4. Wait ~15 min for SSL provisioning. The Firebase console flips to
+   green when ready, then `https://proc.lgai.in/` serves the app.
+
+### Why subdomain-only
+
+DNS records are scoped to the exact label. `proc.lgai.in` records are
+independent of every other label, so the apex and other subdomains
+remain free for whatever else you want to host. Adding the apex or a
+wildcard captures more than you intended and pins this Firebase project
+to the entire zone — avoid both.
+
+### Cloudflare-specific note
+
+If you use Cloudflare for DNS, **keep the proxy off (grey cloud, not
+orange)** for the Firebase records. Firebase issues its own TLS;
+Cloudflare's proxy in front would conflict with the cert validation.
+
+### Multiple apps on the same zone
+
+For each new app on a new subdomain, repeat the above on that subdomain
+only. Each Firebase / Vercel / Netlify project owns its label
+independently. Apex stays untouched until you decide what to do with it.
+
 ## Caveats
 
 - The KPI engine and scorer here are **pragmatic stubs** designed to drive the
